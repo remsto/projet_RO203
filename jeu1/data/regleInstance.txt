@@ -1,0 +1,7 @@
+première ligne : taille de la grille (carrée)
+deuxième : nb de fantomes
+troisième : nb de vampires
+quatrième : nb zombies
+ensuite:
+    grille du problème :
+        nb de monstres à voir sur les côtés, r pour case vide, a pour miroir accent aigu, g pour miroir accent grave

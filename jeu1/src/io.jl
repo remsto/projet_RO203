@@ -4,6 +4,44 @@ using JuMP
 using Plots
 import GR
 
+# Transforme la direction selon le miroir rencontré
+function transfoDirection(dir::Tuple{Int64,Int64}, z_case::Int64)
+    if z_case == 1
+        return (dir[2], dir[1])
+    elseif z_case == 2
+        return (-dir[2], -dir[1])
+    end
+end
+
+# Donne la direction souhaitée pour un côté donné
+function giveDirection(c::Int64)
+    if c == 1
+        return (0, 1)
+    elseif c == 2
+        return (-1, 0)
+    elseif c == 3
+        return (0, -1)
+    elseif c == 4
+        return (1, 0)
+    else
+        println("Problème de valeur dans giveDirection")
+    end
+end
+
+# Donne la case départ pour un côté donnée
+function giveCaseDepart(c::Int64, k::Int64, n::Int64)
+    if c == 1
+        return (k, 1)
+    elseif c == 2
+        return (n, k)
+    elseif c == 3
+        return (k, n)
+    elseif c == 4
+        return (1, k)
+    else
+        println("Problème de valeur dans giveCaseDepart")
+    end
+end
 """
 Read an instance from an input file
 
@@ -18,16 +56,68 @@ function readInputFile(inputFile::String)
     data = readlines(datafile)
     close(datafile)
 
-    # For each line of the input file
-    for line in data
 
-        # TODO
-        println("In file io.jl, in method readInputFile(), TODO: read a line of the input file")
+    n = parse(Int64, split(data[1], ":")[2])
+    V = Array{Int64}(zeros(4, n, n, n))
+    monstre_a_voir = Array{Int64}(undef, 4, n)
+    nb_monstre = Array{Int64}(undef, 3)
+    miroirs = Array{Int64}(undef, n, n)
+
+    # For each line of the input file
+
+    for (i, line) in enumerate(data)
+        if i > 1 && i <= 4
+            nb_monstre[i-1] = parse(Int64, split(line, ":")[2])
+        elseif i == 5
+            split_line = split(line, ",")
+            for (i_element, element) in enumerate(split_line)
+                monstre_a_voir[4, i_element] = parse(Int64, element)
+            end
+        elseif i == 5 + n + 1
+            split_line = split(line, ",")
+            for (i_element, element) in enumerate(split_line)
+                monstre_a_voir[2, i_element] = parse(Int64, element)
+            end
+        elseif i != 1
+            split_line = split(line, ",")
+            monstre_a_voir[1, i-5] = parse(Int64, split_line[1])
+            monstre_a_voir[3, i-5] = parse(Int64, last(split_line))
+            for (i_element, element) in enumerate(split_line)
+                if element == " r"
+                    miroirs[i-5, i_element-1] = 0
+                elseif element == " g"
+                    miroirs[i-5, i_element-1] = 1
+                elseif element == " a"
+                    miroirs[i-5, i_element-1] = 2
+                end
+            end
+
+        end
 
     end
 
+    println(n)
+    # Remplissage des matrices de visibilité
+    for c in 1:4
+        for k in 1:n
+            dir = giveDirection(c)
+            val = 1
+            case = giveCaseDepart(c, k, n)
+            while (case[1] > 0 && case[1] <= n && case[2] > 0 && case[2] <= n)
+                if miroirs[case[1], case[2]] != 0
+                    dir = transfoDirection(dir, miroirs[case[1], case[2]])
+                    val = 2
+                else
+                    V[c, k, case[1], case[2],] = val
+                end
+                case = (case[1] + dir[1], case[2] + dir[2])
+            end
+        end
+    end
+    return n, V, monstre_a_voir, nb_monstre, miroirs
 end
 
+readInputFile("jeu1\\data\\instanceTest.txt")
 
 function displayGrid(n::Int, monstre_a_voir::Array{Int,2}, nb_monstre::Array{Int,1}, miroir::Array{Int,2})
 
