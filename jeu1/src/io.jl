@@ -29,6 +29,122 @@ function readInputFile(inputFile::String)
 end
 
 
+function displayGrid(n::Int, monstre_a_voir::Array{Int,2}, nb_monstre::Array{Int,1}, miroir::Array{Int,2})
+
+    println("Nombre de monstres")
+    println("Fantôme : ", nb_monstre[1])
+    println("Vampire : ", nb_monstre[2])
+    println("Zombie : ", nb_monstre[3])
+    println()
+
+
+    print("   ")
+    for k in 1:n
+        print(" ", monstre_a_voir[4, k], "  ")
+    end
+    println()
+    for i in 1:n
+        println("   ---------------  ")
+        for j in 1:n
+            if j == 1
+                print(monstre_a_voir[1, i], " ")
+            end
+            print("| ")
+            if miroir[i, j] == 1
+                print("\\ ")
+            elseif miroir[i, j] == 2
+                print("/ ")
+            else
+                print("  ")
+            end
+            if j == n
+                println("| ", monstre_a_voir[3, i])
+            end
+        end
+    end
+    println("   ---------------")
+    print("   ")
+    for k in 1:n
+        print(" ", monstre_a_voir[2, k], "  ")
+    end
+    println()
+
+end
+
+n = 4
+monstre_a_voir = [2 3 1 1; 2 4 0 1; 1 0 3 2; 0 4 2 2]
+nb_monstre = [1, 2, 6]
+miroir = [1 0 1 0; 0 0 0 0; 1 0 0 1; 0 1 1 1]
+
+displayGrid(n, monstre_a_voir, nb_monstre, miroir)
+
+function displaySolution(n::Int, monstre_a_voir::Array{Int,2}, nb_monstre::Array{Int,1}, miroir::Array{Int,2}, sol::Array{Int,3})
+
+    println("Nombre de monstres")
+    println("Fantôme : ", nb_monstre[1])
+    println("Vampire : ", nb_monstre[2])
+    println("Zombie : ", nb_monstre[3])
+    println()
+
+    print("   ")
+    for k in 1:n
+        print(" ", monstre_a_voir[4, k], "  ")
+    end
+    println()
+    for i in 1:n
+        println("   ---------------  ")
+        for j in 1:n
+            if j == 1
+                print(monstre_a_voir[1, i], " ")
+            end
+            print("| ")
+            if miroir[i, j] == 1
+                print("\\ ")
+            elseif miroir[i, j] == 2
+                print("/ ")
+            else
+                for k in 1:3
+                    if sol[i, j, k] == 1
+                        if k == 1
+                            print("F ")
+                        elseif k == 2
+                            print("V ")
+                        elseif k == 3
+                            print("Z ")
+                        end
+                    else
+                        print(" ")
+                    end
+                end
+            end
+
+            if j == n
+                println("| ", monstre_a_voir[3, i])
+            end
+        end
+    end
+    println("   ---------------")
+    print("   ")
+    for k in 1:n
+        print(" ", monstre_a_voir[2, k], "  ")
+    end
+    println()
+
+
+end
+
+sol = Array{Int,3}(zeros(4, 4, 3))
+sol[1, 4, 1] = 1
+sol[3, 3, 2] = 1
+sol[4, 1, 2] = 1
+sol[1, 2, 3] = 1
+sol[2, 1, 3] = 1
+sol[2, 2, 3] = 1
+sol[2, 3, 3] = 1
+sol[2, 4, 3] = 1
+sol[3, 2, 3] = 1
+displaySolution(n, monstre_a_voir, nb_monstre, miroir, sol)
+
 """
 Create a pdf file which contains a performance diagram associated to the results of the ../res folder
 Display one curve for each subfolder of the ../res folder.
@@ -44,25 +160,25 @@ Prerequisites:
 function performanceDiagram(outputFile::String)
 
     resultFolder = "../res/"
-    
+
     # Maximal number of files in a subfolder
     maxSize = 0
 
     # Number of subfolders
     subfolderCount = 0
 
-    folderName = Array{String, 1}()
+    folderName = Array{String,1}()
 
     # For each file in the result folder
     for file in readdir(resultFolder)
 
         path = resultFolder * file
-        
+
         # If it is a subfolder
         if isdir(path)
-            
+
             folderName = vcat(folderName, file)
-             
+
             subfolderCount += 1
             folderSize = size(readdir(path), 1)
 
@@ -86,16 +202,16 @@ function performanceDiagram(outputFile::String)
 
     # For each subfolder
     for file in readdir(resultFolder)
-            
+
         path = resultFolder * file
-        
+
         if isdir(path)
 
             folderCount += 1
             fileCount = 0
 
             # For each text file in the subfolder
-            for resultFile in filter(x->occursin(".txt", x), readdir(path))
+            for resultFile in filter(x -> occursin(".txt", x), readdir(path))
 
                 fileCount += 1
                 include(path * "/" * resultFile)
@@ -105,11 +221,11 @@ function performanceDiagram(outputFile::String)
 
                     if solveTime > maxSolveTime
                         maxSolveTime = solveTime
-                    end 
-                end 
-            end 
+                    end
+                end
+            end
         end
-    end 
+    end
 
     # Sort each row increasingly
     results = sort(results, dims=2)
@@ -117,10 +233,10 @@ function performanceDiagram(outputFile::String)
     println("Max solve time: ", maxSolveTime)
 
     # For each line to plot
-    for dim in 1: size(results, 1)
+    for dim in 1:size(results, 1)
 
-        x = Array{Float64, 1}()
-        y = Array{Float64, 1}()
+        x = Array{Float64,1}()
+        y = Array{Float64,1}()
 
         # x coordinate of the previous inflexion point
         previousX = 0
@@ -128,7 +244,7 @@ function performanceDiagram(outputFile::String)
 
         append!(x, previousX)
         append!(y, previousY)
-            
+
         # Current position in the line
         currentId = 1
 
@@ -138,7 +254,7 @@ function performanceDiagram(outputFile::String)
             # Number of elements which have the value previousX
             identicalValues = 1
 
-             # While the value is the same
+            # While the value is the same
             while results[dim, currentId] == previousX && currentId <= size(results, 2)
                 currentId += 1
                 identicalValues += 1
@@ -152,10 +268,10 @@ function performanceDiagram(outputFile::String)
                 append!(x, results[dim, currentId])
                 append!(y, currentId - 1)
             end
-            
+
             previousX = results[dim, currentId]
             previousY = currentId - 1
-            
+
         end
 
         append!(x, maxSolveTime)
@@ -165,15 +281,15 @@ function performanceDiagram(outputFile::String)
         if dim == 1
 
             # Draw a new plot
-            plot(x, y, label = folderName[dim], legend = :bottomright, xaxis = "Time (s)", yaxis = "Solved instances",linewidth=3)
+            plot(x, y, label=folderName[dim], legend=:bottomright, xaxis="Time (s)", yaxis="Solved instances", linewidth=3)
 
-        # Otherwise 
+            # Otherwise 
         else
             # Add the new curve to the created plot
-            savefig(plot!(x, y, label = folderName[dim], linewidth=3), outputFile)
-        end 
+            savefig(plot!(x, y, label=folderName[dim], linewidth=3), outputFile)
+        end
     end
-end 
+end
 
 """
 Create a latex file which contains an array with the results of the ../res folder.
@@ -188,10 +304,10 @@ Prerequisites:
 - Each text file contains a variable "solveTime" and a variable "isOptimal"
 """
 function resultsArray(outputFile::String)
-    
+
     resultFolder = "../res/"
     dataFolder = "../data/"
-    
+
     # Maximal number of files in a subfolder
     maxSize = 0
 
@@ -202,7 +318,9 @@ function resultsArray(outputFile::String)
     fout = open(outputFile, "w")
 
     # Print the latex file output
-    println(fout, raw"""\documentclass{article}
+    println(
+        fout,
+        raw"""\documentclass{article}
 
 \usepackage[french]{babel}
 \usepackage [utf8] {inputenc} % utf-8 / latin1 
@@ -221,7 +339,8 @@ function resultsArray(outputFile::String)
 \setlength{\footskip}{27pt} % Bas de page + séparation
 \setlength{\textheight}{668pt} % Hauteur de la zone de texte (25cm)
 
-\begin{document}""")
+\begin{document}"""
+    )
 
     header = raw"""
 \begin{center}
@@ -229,29 +348,29 @@ function resultsArray(outputFile::String)
  \begin{tabular}{l"""
 
     # Name of the subfolder of the result folder (i.e, the resolution methods used)
-    folderName = Array{String, 1}()
+    folderName = Array{String,1}()
 
     # List of all the instances solved by at least one resolution method
-    solvedInstances = Array{String, 1}()
+    solvedInstances = Array{String,1}()
 
     # For each file in the result folder
     for file in readdir(resultFolder)
 
         path = resultFolder * file
-        
+
         # If it is a subfolder
         if isdir(path)
 
             # Add its name to the folder list
             folderName = vcat(folderName, file)
-             
+
             subfolderCount += 1
             folderSize = size(readdir(path), 1)
 
             # Add all its files in the solvedInstances array
-            for file2 in filter(x->occursin(".txt", x), readdir(path))
+            for file2 in filter(x -> occursin(".txt", x), readdir(path))
                 solvedInstances = vcat(solvedInstances, file2)
-            end 
+            end
 
             if maxSize < folderSize
                 maxSize = folderSize
@@ -300,7 +419,7 @@ function resultsArray(outputFile::String)
         if rem(id, maxInstancePerPage) == 0
             println(fout, footer, "\\newpage")
             println(fout, header)
-        end 
+        end
 
         # Replace the potential underscores '_' in file names
         print(fout, replace(solvedInstance, "_" => "\\_"))
@@ -319,9 +438,9 @@ function resultsArray(outputFile::String)
 
                 if isOptimal
                     println(fout, "\$\\times\$")
-                end 
-                
-            # If the instance has not been solved by this method
+                end
+
+                # If the instance has not been solved by this method
             else
                 println(fout, " & - & - ")
             end
@@ -338,5 +457,5 @@ function resultsArray(outputFile::String)
     println(fout, "\\end{document}")
 
     close(fout)
-    
-end 
+
+end

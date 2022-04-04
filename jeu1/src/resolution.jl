@@ -8,13 +8,26 @@ TOL = 0.00001
 """
 Solve an instance with CPLEX
 """
-function cplexSolve()
+function cplexSolve(n::Int, Visib::Array{Int,4}, monstre_a_voir::Array{Int,2}, nb_monstre::Array{Int,1}, miroir::Array{Int,2})
 
     # Create the model
-    m = Model(with_optimizer(CPLEX.Optimizer))
+    m = Model(CPLEX.Optimizer)
 
-    # TODO
-    println("In file resolution.jl, in method cplexSolve(), TODO: fix input and output, define the model")
+
+    @variable(m, x[1:n, 1:n, 1:3], Bin)
+
+    ##CONTRAINTES 
+
+    @constraint(m, case_remplie[i in 1:n, j in 1:n], sum(x[i, j, k] + miroir[i, j, k] for k in 1:3) >= 1)
+    @constraint(m, un_monstre_case[i in 1:n, j in 1:n], sum(x[i, j, k] for k in 1:3) <= 1)
+
+    @constraint(m, total_monstre[k in 1:3], sum(x[i, j, k] for i in 1:n for j in 1:n) == nb_monstre[k])
+
+    @constraint(m, nbr_visible[cote in 1:4, pos in 1:n], sum(x[i,j,k] for i in 1:n for j in 1:n for k in 2:3 if Visib[cote,pos,i,j]==1) +sum(x[i,j,k] for i in 1:n for j in 1:n for k in 1:3 if (Visib[cote,pos,i,j]==2 && k!=2)) == monstre_a_voir[cote,pos])
+
+
+
+    @objecive(m, Max, sum(x[1,j,1] for j in 1:n))
 
     # Start a chronometer
     start = time()
@@ -22,11 +35,22 @@ function cplexSolve()
     # Solve the model
     optimize!(m)
 
+
     # Return:
-    # 1 - true if an optimum is found
+    # 1 - true if an optimum is found (faissable nan ?)
     # 2 - the resolution time
-    return JuMP.primal_status(m) == JuMP.MathOptInterface.FEASIBLE_POINT, time() - start
-    
+    # 3 - la solution
+    solution_found = JuMP.primal_status(m) == JuMP.MathOptInterface.FEASIBLE_POINT
+    if solution_found 
+        Vx=JuMP.value(x)
+    else 
+        Vx = Array{Int,3}(undef, n,n,3)
+
+
+    return solution_found, time() - start, Vx
+
+
+
 end
 
 """
@@ -36,8 +60,8 @@ function heuristicSolve()
 
     # TODO
     println("In file resolution.jl, in method heuristicSolve(), TODO: fix input and output, define the model")
-    
-end 
+
+end
 
 """
 Solve all the instances contained in "../data" through CPLEX and heuristics
@@ -64,68 +88,68 @@ function solveDataSet()
             mkdir(folder)
         end
     end
-            
+
     global isOptimal = false
     global solveTime = -1
 
     # For each instance
     # (for each file in folder dataFolder which ends by ".txt")
-    for file in filter(x->occursin(".txt", x), readdir(dataFolder))  
-        
+    for file in filter(x -> occursin(".txt", x), readdir(dataFolder))
+
         println("-- Resolution of ", file)
         readInputFile(dataFolder * file)
 
         # TODO
         println("In file resolution.jl, in method solveDataSet(), TODO: read value returned by readInputFile()")
-        
+
         # For each resolution method
         for methodId in 1:size(resolutionMethod, 1)
-            
+
             outputFile = resolutionFolder[methodId] * "/" * file
 
             # If the instance has not already been solved by this method
             if !isfile(outputFile)
-                
-                fout = open(outputFile, "w")  
+
+                fout = open(outputFile, "w")
 
                 resolutionTime = -1
                 isOptimal = false
-                
+
                 # If the method is cplex
                 if resolutionMethod[methodId] == "cplex"
-                    
+
                     # TODO 
                     println("In file resolution.jl, in method solveDataSet(), TODO: fix cplexSolve() arguments and returned values")
-                    
+
                     # Solve it and get the results
                     isOptimal, resolutionTime = cplexSolve()
-                    
+
                     # If a solution is found, write it
                     if isOptimal
                         # TODO
-                        println("In file resolution.jl, in method solveDataSet(), TODO: write cplex solution in fout") 
+                        println("In file resolution.jl, in method solveDataSet(), TODO: write cplex solution in fout")
                     end
 
-                # If the method is one of the heuristics
+                    # If the method is one of the heuristics
                 else
-                    
+
                     isSolved = false
 
                     # Start a chronometer 
                     startingTime = time()
-                    
+
                     # While the grid is not solved and less than 100 seconds are elapsed
                     while !isOptimal && resolutionTime < 100
-                        
+
                         # TODO 
                         println("In file resolution.jl, in method solveDataSet(), TODO: fix heuristicSolve() arguments and returned values")
-                        
+
                         # Solve it and get the results
                         isOptimal, resolutionTime = heuristicSolve()
 
                         # Stop the chronometer
                         resolutionTime = time() - startingTime
-                        
+
                     end
 
                     # Write the solution (if any)
@@ -133,15 +157,15 @@ function solveDataSet()
 
                         # TODO
                         println("In file resolution.jl, in method solveDataSet(), TODO: write the heuristic solution in fout")
-                        
-                    end 
+
+                    end
                 end
 
-                println(fout, "solveTime = ", resolutionTime) 
+                println(fout, "solveTime = ", resolutionTime)
                 println(fout, "isOptimal = ", isOptimal)
-                
+
                 # TODO
-                println("In file resolution.jl, in method solveDataSet(), TODO: write the solution in fout") 
+                println("In file resolution.jl, in method solveDataSet(), TODO: write the solution in fout")
                 close(fout)
             end
 
@@ -150,6 +174,6 @@ function solveDataSet()
             include(outputFile)
             println(resolutionMethod[methodId], " optimal: ", isOptimal)
             println(resolutionMethod[methodId], " time: " * string(round(solveTime, sigdigits=2)) * "s\n")
-        end         
-    end 
+        end
+    end
 end

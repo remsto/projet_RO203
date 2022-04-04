@@ -6,7 +6,7 @@ include("generation.jl")
 TOL = 0.00001
 
 
-"""
+""" 
 Solve a sudoku grid with CPLEX
 
 Argument
@@ -17,7 +17,7 @@ Return
 - x: 3-dimensional variables array such that x[i, j, k] = 1 if cell (i, j) has value k
 - getsolvetime(m): resolution time in seconds
 """
-function cplexSolve(t::Array{Int, 2})
+function cplexSolve(t::Array{Int,2})
 
     n = size(t, 1)
 
@@ -31,7 +31,7 @@ function cplexSolve(t::Array{Int, 2})
     for l in 1:n
         for c in 1:n
             if t[l, c] != 0
-                @constraint(m, x[l,c, t[l, c]] == 1)
+                @constraint(m, x[l, c, t[l, c]] == 1)
             end
         end
     end
@@ -77,7 +77,7 @@ Return
 - gridFeasible: true if the problem is solved
 - tCopy: the grid solved (or partially solved if the problem is not solved)
 """
-function heuristicSolve(t::Array{Int, 2}, checkFeasibility::Bool)
+function heuristicSolve(t::Array{Int,2}, checkFeasibility::Bool)
 
     n = size(t, 1)
     tCopy = copy(t)
@@ -96,14 +96,14 @@ function heuristicSolve(t::Array{Int, 2}, checkFeasibility::Bool)
 
         # Values which can be assigned to the most constrained cell
         values = nothing
-        
+
         # Randomly select a cell and a value
         l = ceil.(Int, n * rand())
         c = ceil.(Int, n * rand())
         id = 1
 
         # For each cell of the grid, while a cell with 0 values has not been found
-        while id <= n*n && (values == nothing || size(values, 1)  != 0)
+        while id <= n * n && (values == nothing || size(values, 1) != 0)
 
             # If the cell does not have a value
             if tCopy[l, c] == 0
@@ -116,9 +116,9 @@ function heuristicSolve(t::Array{Int, 2}, checkFeasibility::Bool)
 
                     values = cValues
                     mcCell = [l c]
-                end 
+                end
             end
-            
+
             # Go to the next cell                    
             if c < n
                 c += 1
@@ -148,16 +148,16 @@ function heuristicSolve(t::Array{Int, 2}, checkFeasibility::Bool)
 
                 # Else assign a random value to the most constrained cell 
             else
-                
+
                 newValue = ceil.(Int, rand() * size(values, 1))
                 if checkFeasibility
-                    
+
                     gridStillFeasible = false
                     id = 1
                     while !gridStillFeasible && id <= size(values, 1)
 
-                        tCopy[mcCell[1], mcCell[2]] = values[rem(newValue, size(values, 1)) + 1]
-                        
+                        tCopy[mcCell[1], mcCell[2]] = values[rem(newValue, size(values, 1))+1]
+
                         if isGridFeasible(tCopy)
                             gridStillFeasible = true
                         else
@@ -165,18 +165,18 @@ function heuristicSolve(t::Array{Int, 2}, checkFeasibility::Bool)
                         end
 
                         id += 1
-                        
+
                     end
-                else 
+                else
                     tCopy[mcCell[1], mcCell[2]] = values[newValue]
-                end 
-            end 
-        end  
-    end  
+                end
+            end
+        end
+    end
 
     return gridStillFeasible, tCopy
-    
-end 
+
+end
 
 """
 Number of values which could currently be assigned to a cell
@@ -188,18 +188,18 @@ Arguments
 Return
 - values: array of integers which do not appear on line l, column c or in the block of (l, c)
 """
-function possibleValues(t::Array{Int, 2}, l::Int64, c::Int64)
+function possibleValues(t::Array{Int,2}, l::Int64, c::Int64)
 
-    values = Array{Int64, 1}()
+    values = Array{Int64,1}()
 
     for v in 1:size(t, 1)
         if isValid(t, l, c, v)
             values = append!(values, v)
-        end 
-    end 
+        end
+    end
 
     return values
-    
+
 end
 
 """
@@ -216,56 +216,56 @@ function solveDataSet()
 
     resolutionMethod = ["cplex", "heuristique", "heuristique2"]
     resolutionFolder = resFolder .* resolutionMethod
-    
+
     for folder in resolutionFolder
         if !isdir(folder)
             mkdir(folder)
         end
     end
-            
+
     global isOptimal = false
     global solveTime = -1
 
     # For each input file
     # (for each file in folder dataFolder which ends by ".txt")
-    for file in filter(x->occursin(".txt", x), readdir(dataFolder))  
-        
+    for file in filter(x -> occursin(".txt", x), readdir(dataFolder))
+
         println("-- Resolution of ", file)
         t = readInputFile(dataFolder * file)
 
         # For each resolution method
         for methodId in 1:size(resolutionMethod, 1)
-            
+
             outputFile = resolutionFolder[methodId] * "/" * file
 
             # If the input file has not already been solved by this method
             if !isfile(outputFile)
-                
-                fout = open(outputFile, "w")  
+
+                fout = open(outputFile, "w")
 
                 resolutionTime = -1
                 isOptimal = false
-                
+
                 # If the method is cplex
                 if resolutionMethod[methodId] == "cplex"
 
                     # Solve it and get the results
                     isOptimal, x, resolutionTime = cplexSolve(t)
-                    
+
                     # Also write the solution (if any)
                     if isOptimal
                         writeSolution(fout, x)
                     end
 
-                # If the method is one of the heuristics
+                    # If the method is one of the heuristics
                 else
-                    
+
                     isSolved = false
                     solution = []
 
                     # Start a chronometer 
                     startingTime = time()
-                    
+
                     # While the grid is not solved and less than 100 seconds are elapsed
                     while !isOptimal && resolutionTime < 100
                         print(".")
@@ -281,11 +281,11 @@ function solveDataSet()
                     # Write the solution (if any)
                     if isOptimal
                         writeSolution(fout, solution)
-                    end 
+                    end
                 end
 
-                println(fout, "solveTime = ", resolutionTime) 
-                println(fout, "isOptimal = ", isOptimal) 
+                println(fout, "solveTime = ", resolutionTime)
+                println(fout, "isOptimal = ", isOptimal)
                 close(fout)
             end
 
@@ -294,8 +294,8 @@ function solveDataSet()
             include(outputFile)
             println(resolutionMethod[methodId], " optimal: ", isOptimal)
             println(resolutionMethod[methodId], " time: " * string(round(solveTime, sigdigits=2)) * "s\n")
-        end         
-    end 
+        end
+    end
 end
 
 """
@@ -304,7 +304,7 @@ Test if the grid is feasible
 Arguments
 - t: array of size n*n with values in [0, n] (0 if the cell is empty)
 """
-function isGridFeasible(t::Array{Int64, 2})
+function isGridFeasible(t::Array{Int64,2})
 
     n = size(t, 1)
     isFeasible = true
@@ -327,15 +327,15 @@ function isGridFeasible(t::Array{Int64, 2})
                 if isValid(t, l, c, v)
                     feasibleValueFound = true
                 end
-                
+
                 v += 1
-                
+
             end
-            
+
             if !feasibleValueFound
                 isFeasible = false
-            end 
-        end 
+            end
+        end
 
         # Go to the next cell
         if c < n
@@ -347,4 +347,4 @@ function isGridFeasible(t::Array{Int64, 2})
     end
 
     return isFeasible
-end 
+end
