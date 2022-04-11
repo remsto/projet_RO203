@@ -282,7 +282,7 @@ Prerequisites:
 """
 function performanceDiagram(outputFile::String)
 
-    resultFolder = "../res/"
+    resultFolder = "jeu1/res/"
 
     # Maximal number of files in a subfolder
     maxSize = 0
@@ -434,7 +434,7 @@ Prerequisites:
 """
 function resultsArray(outputFile::String)
 
-    resultFolder = "jeu1/res/cplex"
+    resultFolder = "jeu1/res/"
     dataFolder = "jeu1/data/"
 
     # Maximal number of files in a subfolder
@@ -509,6 +509,7 @@ function resultsArray(outputFile::String)
 
     # Only keep one string for each instance solved
     unique(solvedInstances)
+    println(solvedInstances)
 
     # For each resolution method, add two columns in the array
     for folder in folderName
