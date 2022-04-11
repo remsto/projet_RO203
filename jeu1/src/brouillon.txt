@@ -1,0 +1,48 @@
+
+    print(fout, "   ")
+    for k in 1:n
+        print(fout, " ", monstre_a_voir[4, k], "  ")
+    end
+    println(fout,)
+    for i in 1:n
+        print(fout, "  -")
+        for tiret in 1:n
+            print(fout, "----")
+        end
+        print(fout, "\n")
+        for j in 1:n
+            if j == 1
+                print(fout, monstre_a_voir[1, i], " ")
+            end
+
+            print(fout, "| ")
+
+            if miroir[i, j] == 1
+                print(fout, "\\ ")
+            elseif miroir[i, j] == 2
+                print(fout, "/ ")
+            elseif sol[i, j, 1] == 1
+                print(fout, "F ")
+            elseif sol[i, j, 2] == 1
+                print(fout, "V ")
+            elseif sol[i, j, 3] == 1
+                print(fout, "Z ")
+            else
+                print(fout, "  ")
+            end
+
+            if j == n
+                println(fout, "| ", monstre_a_voir[3, i])
+            end
+        end
+    end
+    print(fout, "  -")
+    for tiret in 1:n
+        print(fout, "----")
+    end
+    print(fout, "\n")
+    print(fout, "   ")
+    for k in 1:n
+        print(fout, " ", monstre_a_voir[2, k], "  ")
+    end
+    print(fout, "\n")

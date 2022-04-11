@@ -246,59 +246,10 @@ end
 
 function displaySolution_file(fout::IOStream, n::Int, monstre_a_voir::Array{Int,2}, nb_monstre::Array{Int,1}, miroir::Array{Int,2}, sol::Array{Int,3})
 
-    println(fout, "Nombre de monstres")
-    println(fout, "Fantôme : ", nb_monstre[1])
-    println(fout, "Vampire : ", nb_monstre[2])
-    println(fout, "Zombie : ", nb_monstre[3])
+    println(fout, "nb_monstre = ", nb_monstre)
     print(fout, "\n")
 
-    print(fout, "   ")
-    for k in 1:n
-        print(fout, " ", monstre_a_voir[4, k], "  ")
-    end
-    println(fout,)
-    for i in 1:n
-        print(fout, "  -")
-        for tiret in 1:n
-            print(fout, "----")
-        end
-        print(fout, "\n")
-        for j in 1:n
-            if j == 1
-                print(fout, monstre_a_voir[1, i], " ")
-            end
-
-            print(fout, "| ")
-
-            if miroir[i, j] == 1
-                print(fout, "\\ ")
-            elseif miroir[i, j] == 2
-                print(fout, "/ ")
-            elseif sol[i, j, 1] == 1
-                print(fout, "F ")
-            elseif sol[i, j, 2] == 1
-                print(fout, "V ")
-            elseif sol[i, j, 3] == 1
-                print(fout, "Z ")
-            else
-                print(fout, "  ")
-            end
-
-            if j == n
-                println(fout, "| ", monstre_a_voir[3, i])
-            end
-        end
-    end
-    print(fout, "  -")
-    for tiret in 1:n
-        print(fout, "----")
-    end
-    print(fout, "\n")
-    print(fout, "   ")
-    for k in 1:n
-        print(fout, " ", monstre_a_voir[2, k], "  ")
-    end
-    print(fout, "\n")
+    println(fout, "solution = ", sol, "\n")
 
 end
 
@@ -331,7 +282,7 @@ Prerequisites:
 """
 function performanceDiagram(outputFile::String)
 
-    resultFolder = "jeu1/res/"
+    resultFolder = "../res/"
 
     # Maximal number of files in a subfolder
     maxSize = 0
@@ -360,8 +311,10 @@ function performanceDiagram(outputFile::String)
         end
     end
 
+
     # Array that will contain the resolution times (one line for each subfolder)
     results = Array{Float64}(undef, subfolderCount, maxSize)
+    #println("taille tableau",subfolderCount, " ", maxSize)
 
     for i in 1:subfolderCount
         for j in 1:maxSize
@@ -371,6 +324,7 @@ function performanceDiagram(outputFile::String)
 
     folderCount = 0
     maxSolveTime = 0
+
 
     # For each subfolder
     for file in readdir(resultFolder)
@@ -386,6 +340,7 @@ function performanceDiagram(outputFile::String)
             for resultFile in filter(x -> occursin(".txt", x), readdir(path))
 
                 fileCount += 1
+
                 include(path * "/" * resultFile)
 
                 if isOptimal
@@ -403,6 +358,7 @@ function performanceDiagram(outputFile::String)
     results = sort(results, dims=2)
 
     println("Max solve time: ", maxSolveTime)
+    #println("result ", size(results, 1))
 
     # For each line to plot
     for dim in 1:size(results, 1)
@@ -450,11 +406,12 @@ function performanceDiagram(outputFile::String)
         append!(y, currentId - 1)
 
         # If it is the first subfolder
-        if dim == 1
 
+        if dim == 1
+            println("ici")
             # Draw a new plot
             plot(x, y, label=folderName[dim], legend=:bottomright, xaxis="Time (s)", yaxis="Solved instances", linewidth=3)
-
+            savefig(outputFile)
             # Otherwise 
         else
             # Add the new curve to the created plot
@@ -477,8 +434,8 @@ Prerequisites:
 """
 function resultsArray(outputFile::String)
 
-    resultFolder = "../res/"
-    dataFolder = "../data/"
+    resultFolder = "jeu1/res/cplex"
+    dataFolder = "jeu1/data/"
 
     # Maximal number of files in a subfolder
     maxSize = 0

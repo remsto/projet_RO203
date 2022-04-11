@@ -46,7 +46,7 @@ function cplexSolve(inputFile::String)
     solution_found = JuMP.primal_status(m) == JuMP.MathOptInterface.FEASIBLE_POINT
     if solution_found
         Vx = JuMP.value.(x)
-        Vx = round.(Int64,Vx)
+        Vx = round.(Int64, Vx)
     else
         Vx = Array{Int,3}(zeros(n, n, 3))
     end
@@ -55,10 +55,6 @@ function cplexSolve(inputFile::String)
 
 end
 
-n, V, monstre_a_voir, nb_monstre, miroir = readInputFile("jeu1/data/inst_t5_dm0.2_dmaigue0.3_3.txt")
-displayGrid(n, monstre_a_voir, nb_monstre, miroir)
-found, duree, sol = cplexSolve("jeu1/data/inst_t5_dm0.2_dmaigue0.3_3.txt")
-displaySolution(n, monstre_a_voir, nb_monstre, miroir, sol)
 
 
 """
