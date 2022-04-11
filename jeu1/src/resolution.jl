@@ -8,26 +8,27 @@ TOL = 0.00001
 """
 Solve an instance with CPLEX
 """
-function cplexSolve(n::Int, Visib::Array{Int,4}, monstre_a_voir::Array{Int,2}, nb_monstre::Array{Int,1}, miroir::Array{Int,2})
+function cplexSolve(inputFile::String)
 
+    n, Visib, monstre_a_voir, nb_monstre, miroir = readInputFile(inputFile)
     # Create the model
     m = Model(CPLEX.Optimizer)
 
 
     @variable(m, x[1:n, 1:n, 1:3], Bin)
 
+    @objective(m, Max, sum(x[1, j, 1] for j in 1:n))
+
     ##CONTRAINTES 
 
-    @constraint(m, case_remplie[i in 1:n, j in 1:n], sum(x[i, j, k] + miroir[i, j, k] for k in 1:3) >= 1)
+    @constraint(m, case_remplie[i in 1:n, j in 1:n], sum(x[i, j, k] + miroir[i, j] for k in 1:3) >= 1)
     @constraint(m, un_monstre_case[i in 1:n, j in 1:n], sum(x[i, j, k] for k in 1:3) <= 1)
 
     @constraint(m, total_monstre[k in 1:3], sum(x[i, j, k] for i in 1:n for j in 1:n) == nb_monstre[k])
 
-    @constraint(m, nbr_visible[cote in 1:4, pos in 1:n], sum(x[i,j,k] for i in 1:n for j in 1:n for k in 2:3 if Visib[cote,pos,i,j]==1) +sum(x[i,j,k] for i in 1:n for j in 1:n for k in 1:3 if (Visib[cote,pos,i,j]==2 && k!=2)) == monstre_a_voir[cote,pos])
+    @constraint(m, nbr_visible[cote in 1:4, pos in 1:n], sum(x[i, j, k] for i in 1:n for j in 1:n for k in 2:3 if Visib[cote, pos, i, j] == 1) + sum(x[i, j, k] for i in 1:n for j in 1:n for k in 1:2:3 if Visib[cote, pos, i, j] == 2) == monstre_a_voir[cote, pos])
 
 
-
-    @objective(m, Max, sum(x[1,j,1] for j in 1:n))
 
     # Start a chronometer
     start = time()
@@ -35,23 +36,26 @@ function cplexSolve(n::Int, Visib::Array{Int,4}, monstre_a_voir::Array{Int,2}, n
     # Solve the model
     optimize!(m)
 
+    duree = time() - start
+
 
     # Return:
     # 1 - true if an optimum is found (faissable nan ?)
     # 2 - the resolution time
     # 3 - la solution
     solution_found = JuMP.primal_status(m) == JuMP.MathOptInterface.FEASIBLE_POINT
-    if solution_found 
-        Vx=JuMP.value(x)
-    else 
-        Vx = Array{Int,3}(undef, n,n,3)
-
+    if solution_found
+        Vx = JuMP.value.(x)
+        Vx = round.(Int64, Vx)
+    else
+        Vx = Array{Int,3}(zeros(n, n, 3))
     end
-    return solution_found, time() - start, Vx
 
-
+    return solution_found, duree, Vx
 
 end
+
+
 
 """
 Heuristically solve an instance
@@ -72,8 +76,8 @@ Remark: If an instance has previously been solved (either by cplex or the heuris
 """
 function solveDataSet()
 
-    dataFolder = "../data/"
-    resFolder = "../res/"
+    dataFolder = "jeu1/data/"
+    resFolder = "jeu1/res/"
 
     # Array which contains the name of the resolution methods
     resolutionMethod = ["cplex"]
@@ -97,10 +101,8 @@ function solveDataSet()
     for file in filter(x -> occursin(".txt", x), readdir(dataFolder))
 
         println("-- Resolution of ", file)
-        readInputFile(dataFolder * file)
+        n, Visib, monstre_a_voir, nb_monstre, miroir = readInputFile(dataFolder * file)
 
-        # TODO
-        println("In file resolution.jl, in method solveDataSet(), TODO: read value returned by readInputFile()")
 
         # For each resolution method
         for methodId in 1:size(resolutionMethod, 1)
@@ -118,16 +120,14 @@ function solveDataSet()
                 # If the method is cplex
                 if resolutionMethod[methodId] == "cplex"
 
-                    # TODO 
-                    println("In file resolution.jl, in method solveDataSet(), TODO: fix cplexSolve() arguments and returned values")
 
                     # Solve it and get the results
-                    isOptimal, resolutionTime = cplexSolve()
+                    isOptimal, resolutionTime, sol = cplexSolve(dataFolder * file)
 
                     # If a solution is found, write it
                     if isOptimal
                         # TODO
-                        println("In file resolution.jl, in method solveDataSet(), TODO: write cplex solution in fout")
+                        displaySolution_file(fout, n, monstre_a_voir, nb_monstre, miroir, sol)
                     end
 
                     # If the method is one of the heuristics
@@ -165,13 +165,13 @@ function solveDataSet()
                 println(fout, "isOptimal = ", isOptimal)
 
                 # TODO
-                println("In file resolution.jl, in method solveDataSet(), TODO: write the solution in fout")
+                #println("In file resolution.jl, in method solveDataSet(), TODO: write the solution in fout")
                 close(fout)
             end
 
 
             # Display the results obtained with the method on the current instance
-            include(outputFile)
+            #include(outputFile)
             println(resolutionMethod[methodId], " optimal: ", isOptimal)
             println(resolutionMethod[methodId], " time: " * string(round(solveTime, sigdigits=2)) * "s\n")
         end

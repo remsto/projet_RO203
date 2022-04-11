@@ -20,13 +20,13 @@ function generateInstance(n::Int64, density::Float64)
     while !isGridValid
 
         isGridValid = true
-        
+
         # Array that will contain the generated grid
         t = zeros(n, n)
         i = 1
 
         # While the grid is valid and the required number of cells is not filled
-        while isGridValid && i < (n*n*density)
+        while isGridValid && i < (n * n * density)
 
             # Randomly select a cell and a value
             l = ceil.(Int, n * rand())
@@ -48,11 +48,11 @@ function generateInstance(n::Int64, density::Float64)
             # While is it not possible to assign the value to the cell
             # (we assign a value if the cell is free and the value is valid)
             # and while all the cells have not been considered
-            while !(isCellFree && isValueValid) && testedCells < n*n
+            while !(isCellFree && isValueValid) && testedCells < n * n
 
                 # If the cell has already been assigned a number or if all the values have been tested for this cell
                 if !isCellFree || attemptCount == n
-                    
+
                     # Go to the next cell                    
                     if c < n
                         c += 1
@@ -70,17 +70,17 @@ function generateInstance(n::Int64, density::Float64)
                     isCellFree = t[l, c] == 0
                     isValueValid = isValid(t, l, c, v)
                     attemptCount = 0
-                    
+
                     # If the cell has not already been assigned a value and all the value have not all been tested
                 else
                     attemptCount += 1
                     v = rem(v, n) + 1
-                end 
+                end
             end
 
-            if testedCells == n*n
+            if testedCells == n * n
                 isGridValid = false
-            else 
+            else
                 t[l, c] = v
             end
 
@@ -89,8 +89,8 @@ function generateInstance(n::Int64, density::Float64)
     end
 
     return t
-    
-end 
+
+end
 
 
 """
@@ -103,7 +103,7 @@ Arguments
 
 Return: true if t[l, c] can be set to v; false otherwise
 """
-function isValid(t::Array{Int64, 2}, l::Int64, c::Int64, v::Int64)
+function isValid(t::Array{Int64,2}, l::Int64, c::Int64, v::Int64)
 
     n = size(t, 1)
     isValid = true
@@ -128,10 +128,10 @@ function isValid(t::Array{Int64, 2}, l::Int64, c::Int64, v::Int64)
         end
         c2 += 1
     end
-    
+
     # Test if v appears in the block which contains cell (l, c)
     blockSize = round.(Int, sqrt(n))
-    
+
     lTop = l - rem(l - 1, blockSize)
     cLeft = c - rem(c - 1, blockSize)
 
@@ -139,7 +139,7 @@ function isValid(t::Array{Int64, 2}, l::Int64, c::Int64, v::Int64)
     c2 = cLeft
 
     while isValid && l2 != lTop + blockSize
-        
+
         if t[l2, c2] == v
             isValid = false
         end
@@ -150,11 +150,11 @@ function isValid(t::Array{Int64, 2}, l::Int64, c::Int64, v::Int64)
         else
             l2 += 1
             c2 = cLeft
-        end 
+        end
     end
 
     return isValid
-    
+
 end
 
 
@@ -163,6 +163,7 @@ Generate all the instances
 
 Remark: a grid is generated only if the corresponding output file does not already exist
 """
+
 function generateDataSet()
 
     # For each grid size considered
@@ -179,7 +180,7 @@ function generateDataSet()
                 if !isfile(fileName)
                     println("-- Generating file " * fileName)
                     saveInstance(generateInstance(size, density), fileName)
-                end 
+                end
             end
         end
     end

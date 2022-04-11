@@ -42,6 +42,28 @@ function giveCaseDepart(c::Int64, k::Int64, n::Int64)
         println("Problème de valeur dans giveCaseDepart")
     end
 end
+
+function matrice_vis(n::Int64, miroirs::Array{Int64,2})
+    V = Array{Int64}(zeros(4, n, n, n))
+    for c in 1:4
+        for k in 1:n
+            dir = giveDirection(c)
+            val = 1
+            case = giveCaseDepart(c, k, n)
+            while (case[1] > 0 && case[1] <= n && case[2] > 0 && case[2] <= n)
+                if miroirs[case[1], case[2]] != 0
+                    dir = transfoDirection(dir, miroirs[case[1], case[2]])
+                    val = 2
+                else
+                    V[c, k, case[1], case[2],] = val
+                end
+                case = (case[1] + dir[1], case[2] + dir[2])
+            end
+        end
+    end
+    return V
+end
+
 """
 Read an instance from an input file
 
@@ -58,7 +80,6 @@ function readInputFile(inputFile::String)
 
 
     n = parse(Int64, split(data[1], ":")[2])
-    V = Array{Int64}(zeros(4, n, n, n))
     monstre_a_voir = Array{Int64}(undef, 4, n)
     nb_monstre = Array{Int64}(undef, 3)
     miroirs = Array{Int64}(undef, n, n)
@@ -97,25 +118,12 @@ function readInputFile(inputFile::String)
     end
 
     # Remplissage des matrices de visibilité
-    for c in 1:4
-        for k in 1:n
-            dir = giveDirection(c)
-            val = 1
-            case = giveCaseDepart(c, k, n)
-            while (case[1] > 0 && case[1] <= n && case[2] > 0 && case[2] <= n)
-                if miroirs[case[1], case[2]] != 0
-                    dir = transfoDirection(dir, miroirs[case[1], case[2]])
-                    val = 2
-                else
-                    V[c, k, case[1], case[2],] = val
-                end
-                case = (case[1] + dir[1], case[2] + dir[2])
-            end
-        end
-    end
+    V = matrice_vis(n, miroirs)
+
     return n, V, monstre_a_voir, nb_monstre, miroirs
 end
 
+#readInputFile("jeu1\\data\\instanceTest.txt")
 
 function displayGrid(n::Int, monstre_a_voir::Array{Int,2}, nb_monstre::Array{Int,1}, miroir::Array{Int,2})
 
@@ -132,7 +140,11 @@ function displayGrid(n::Int, monstre_a_voir::Array{Int,2}, nb_monstre::Array{Int
     end
     println()
     for i in 1:n
-        println("   ---------------  ")
+        print("  -")
+        for tiret in 1:n
+            print("----")
+        end
+        println()
         for j in 1:n
             if j == 1
                 print(monstre_a_voir[1, i], " ")
@@ -150,14 +162,26 @@ function displayGrid(n::Int, monstre_a_voir::Array{Int,2}, nb_monstre::Array{Int
             end
         end
     end
-    println("   ---------------")
+    print("  -")
+    for tiret in 1:n
+        print("----")
+    end
+    println()
     print("   ")
     for k in 1:n
         print(" ", monstre_a_voir[2, k], "  ")
     end
-    println()
+    println("\n")
+
 
 end
+
+#n = 4
+#monstre_a_voir = [2 4 0 1; 1 0 3 2; 0 4 2 2; 2 3 1 1]
+#nb_monstre = [1, 2, 6]
+#miroir = [1 0 1 0; 0 0 0 0; 1 0 0 1; 0 1 1 1]
+
+#displayGrid(n, monstre_a_voir, nb_monstre, miroir)
 
 function displaySolution(n::Int, monstre_a_voir::Array{Int,2}, nb_monstre::Array{Int,1}, miroir::Array{Int,2}, sol::Array{Int,3})
 
@@ -173,30 +197,30 @@ function displaySolution(n::Int, monstre_a_voir::Array{Int,2}, nb_monstre::Array
     end
     println()
     for i in 1:n
-        println("   ---------------  ")
+        print("  -")
+        for tiret in 1:n
+            print("----")
+        end
+        println()
         for j in 1:n
             if j == 1
                 print(monstre_a_voir[1, i], " ")
             end
+
             print("| ")
+
             if miroir[i, j] == 1
                 print("\\ ")
             elseif miroir[i, j] == 2
                 print("/ ")
+            elseif sol[i, j, 1] == 1
+                print("F ")
+            elseif sol[i, j, 2] == 1
+                print("V ")
+            elseif sol[i, j, 3] == 1
+                print("Z ")
             else
-                for k in 1:3
-                    if sol[i, j, k] == 1
-                        if k == 1
-                            print("F ")
-                        elseif k == 2
-                            print("V ")
-                        elseif k == 3
-                            print("Z ")
-                        end
-                    else
-                        print(" ")
-                    end
-                end
+                print("  ")
             end
 
             if j == n
@@ -204,15 +228,44 @@ function displaySolution(n::Int, monstre_a_voir::Array{Int,2}, nb_monstre::Array
             end
         end
     end
-    println("   ---------------")
+    print("  -")
+    for tiret in 1:n
+        print("----")
+    end
+    println()
     print("   ")
     for k in 1:n
         print(" ", monstre_a_voir[2, k], "  ")
     end
-    println()
+    println("\n")
 
 
 end
+
+
+function displaySolution_file(fout::IOStream, n::Int, monstre_a_voir::Array{Int,2}, nb_monstre::Array{Int,1}, miroir::Array{Int,2}, sol::Array{Int,3})
+
+    println(fout, "nb_monstre = ", nb_monstre)
+    print(fout, "\n")
+
+    println(fout, "solution = ", sol, "\n")
+
+end
+
+
+#= 
+sol = Array{Int,3}(zeros(4, 4, 3))
+sol[1, 4, 1] = 1
+sol[3, 3, 2] = 1
+sol[4, 1, 2] = 1
+sol[1, 2, 3] = 1
+sol[2, 1, 3] = 1
+sol[2, 2, 3] = 1
+sol[2, 3, 3] = 1
+sol[2, 4, 3] = 1
+sol[3, 2, 3] = 1
+displaySolution(n, monstre_a_voir, nb_monstre, miroir, sol)
+ =#
 
 """
 Create a pdf file which contains a performance diagram associated to the results of the ../res folder
@@ -257,8 +310,10 @@ function performanceDiagram(outputFile::String)
         end
     end
 
+
     # Array that will contain the resolution times (one line for each subfolder)
     results = Array{Float64}(undef, subfolderCount, maxSize)
+    #println("taille tableau",subfolderCount, " ", maxSize)
 
     for i in 1:subfolderCount
         for j in 1:maxSize
@@ -268,6 +323,7 @@ function performanceDiagram(outputFile::String)
 
     folderCount = 0
     maxSolveTime = 0
+
 
     # For each subfolder
     for file in readdir(resultFolder)
@@ -283,6 +339,7 @@ function performanceDiagram(outputFile::String)
             for resultFile in filter(x -> occursin(".txt", x), readdir(path))
 
                 fileCount += 1
+
                 include(path * "/" * resultFile)
 
                 if isOptimal
@@ -300,6 +357,7 @@ function performanceDiagram(outputFile::String)
     results = sort(results, dims=2)
 
     println("Max solve time: ", maxSolveTime)
+    #println("result ", size(results, 1))
 
     # For each line to plot
     for dim in 1:size(results, 1)
@@ -347,11 +405,12 @@ function performanceDiagram(outputFile::String)
         append!(y, currentId - 1)
 
         # If it is the first subfolder
-        if dim == 1
 
+        if dim == 1
+            println("ici")
             # Draw a new plot
             plot(x, y, label=folderName[dim], legend=:bottomright, xaxis="Time (s)", yaxis="Solved instances", linewidth=3)
-
+            savefig(outputFile)
             # Otherwise 
         else
             # Add the new curve to the created plot
@@ -374,8 +433,8 @@ Prerequisites:
 """
 function resultsArray(outputFile::String)
 
-    resultFolder = "../res/"
-    dataFolder = "../data/"
+    resultFolder = "jeu1/res/cplex"
+    dataFolder = "jeu1/data/"
 
     # Maximal number of files in a subfolder
     maxSize = 0
