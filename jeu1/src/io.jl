@@ -117,7 +117,6 @@ function readInputFile(inputFile::String)
 
     end
 
-    println(n)
     # Remplissage des matrices de visibilité
     V = matrice_vis(n, miroirs)
 
