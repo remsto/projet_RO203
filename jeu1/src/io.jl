@@ -96,7 +96,6 @@ function readInputFile(inputFile::String)
 
     end
 
-    println(n)
     # Remplissage des matrices de visibilité
     for c in 1:4
         for k in 1:n
@@ -117,7 +116,6 @@ function readInputFile(inputFile::String)
     return n, V, monstre_a_voir, nb_monstre, miroirs
 end
 
-readInputFile("jeu1\\data\\instanceTest.txt")
 
 function displayGrid(n::Int, monstre_a_voir::Array{Int,2}, nb_monstre::Array{Int,1}, miroir::Array{Int,2})
 
@@ -160,13 +158,6 @@ function displayGrid(n::Int, monstre_a_voir::Array{Int,2}, nb_monstre::Array{Int
     println()
 
 end
-
-n = 4
-monstre_a_voir = [2 3 1 1; 2 4 0 1; 1 0 3 2; 0 4 2 2]
-nb_monstre = [1, 2, 6]
-miroir = [1 0 1 0; 0 0 0 0; 1 0 0 1; 0 1 1 1]
-
-displayGrid(n, monstre_a_voir, nb_monstre, miroir)
 
 function displaySolution(n::Int, monstre_a_voir::Array{Int,2}, nb_monstre::Array{Int,1}, miroir::Array{Int,2}, sol::Array{Int,3})
 
@@ -222,18 +213,6 @@ function displaySolution(n::Int, monstre_a_voir::Array{Int,2}, nb_monstre::Array
 
 
 end
-
-sol = Array{Int,3}(zeros(4, 4, 3))
-sol[1, 4, 1] = 1
-sol[3, 3, 2] = 1
-sol[4, 1, 2] = 1
-sol[1, 2, 3] = 1
-sol[2, 1, 3] = 1
-sol[2, 2, 3] = 1
-sol[2, 3, 3] = 1
-sol[2, 4, 3] = 1
-sol[3, 2, 3] = 1
-displaySolution(n, monstre_a_voir, nb_monstre, miroir, sol)
 
 """
 Create a pdf file which contains a performance diagram associated to the results of the ../res folder

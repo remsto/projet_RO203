@@ -27,7 +27,7 @@ function cplexSolve(n::Int, Visib::Array{Int,4}, monstre_a_voir::Array{Int,2}, n
 
 
 
-    @objecive(m, Max, sum(x[1,j,1] for j in 1:n))
+    @objective(m, Max, sum(x[1,j,1] for j in 1:n))
 
     # Start a chronometer
     start = time()
@@ -46,7 +46,7 @@ function cplexSolve(n::Int, Visib::Array{Int,4}, monstre_a_voir::Array{Int,2}, n
     else 
         Vx = Array{Int,3}(undef, n,n,3)
 
-
+    end
     return solution_found, time() - start, Vx
 
 
