@@ -180,7 +180,6 @@ end
 #monstre_a_voir = [2 4 0 1; 1 0 3 2; 0 4 2 2; 2 3 1 1]
 #nb_monstre = [1, 2, 6]
 #miroir = [1 0 1 0; 0 0 0 0; 1 0 0 1; 0 1 1 1]
-
 #displayGrid(n, monstre_a_voir, nb_monstre, miroir)
 
 function displaySolution(n::Int, monstre_a_voir::Array{Int,2}, nb_monstre::Array{Int,1}, miroir::Array{Int,2}, sol::Array{Int,3})

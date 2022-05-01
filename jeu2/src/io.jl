@@ -79,9 +79,9 @@ function displayGrid(n::Int, I::Int, J::Int, Pa::Array{Int,2})
 end
 
 
-function displaySolution(n::Int, I::Int, J::Int, sol::Array{Int,((I * J)/n)})
+function displaySolution(n::Int, I::Int, J::Int, sol::Array{Int,3})
 
-    N = (I * J)/n
+    N = (I * J) ÷ n
     println("Répartition des zones :")
 
     for i in 1:I
@@ -92,10 +92,11 @@ function displaySolution(n::Int, I::Int, J::Int, sol::Array{Int,((I * J)/n)})
         println()
         for j in 1:J
             print("| ")
-            for k in 1:N 
-                if sol[i,j,k]==1
+            for k in 1:N
+                if sol[i, j, k] == 1
                     print(k)
-                end 
+                end
+            end
             print(" ")
             if j == J
                 println("|")

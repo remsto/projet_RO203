@@ -8,7 +8,7 @@ Argument
 - n: size of the grid
 - density: percentage in [0, 1] of initial values in the grid
 """
-function generateInstance(n::Int64, I::Int64, J::Int64 density::Float64)
+function generateInstance(n::Int64, I::Int64, J::Int64, density::Float64)
 
     # TODO
     println("In file generation.jl, in method generateInstance(), TODO: generate an instance")
