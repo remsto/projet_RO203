@@ -8,14 +8,14 @@ TOL = 0.00001
 """
 Solve an instance with CPLEX
 """
-function cplexSolve()
+function cplexSolve(inputFile::String)
 
     # Create the model
     m = Model(CPLEX.Optimizer)
 
     # TODO
 
-    n, I, J, Pa = readInputFile("path")
+    n, I, J, Pa = readInputFile(inputFile)
     N = n / (I * J)
     @variable(m, z[1:I, 1:J, 1:N], Bin)
     @objective(m, Max, sum(x[1, j, 1] for j in 1:n))
@@ -34,22 +34,32 @@ function cplexSolve()
     @variable(m, diaggrg[1:(I+J-1), 1:N], Bin)
     @variable(m, diaggrd[1:(I+J-1), 1:N], Bin)
 
+    #contraintes de zones
     @constraint(m, case_par_zone[k in 1:N], sum(z[i, j, k] for i in 1:I for j in 1:J) == n)
     @constraint(m, case_exclusive[i in 1:I, j in 1:J], sum(z[i, j, k] for k in 1:N) == 1)
-    for i in 1:I
-        for j in 1:J
-            if Pa[i, j] != -1
-                @constraint(m, Pa[i, j] == P[i, j])
-            end
-        end
-    end
+
+    #contraintes palissades 
+    @constraint(m, paliss[i in 1:I, j in 1:J; Pa[i, j] != -1], Pa[i, j] == P[i, j])
+
+    ####contraintes connexité 
+    #max dans chaque direction 
     @constraint(m, colmax[j in 1:J, k in 1:N], col[j, k] == max(z[i, j] for i in 1:I))
     @constraint(m, ligmax[j in 1:J, k in 1:N], lig[j, k] == max(z[i, j] for i in 1:I))
     @constraint(m, diagaimax[a in 1:(I+J-1), k in 1:N], diagai[a, k] == max(z[]))
+    #max a gauche 
+    @constraint(m, max_gau_col1[j in 1:J, k in 1:N, j_g in 1:(j-1)], colg[j, k] <= col[j_g, k])
+    @constraint(m, max_gau_col2[j in 1:J, k in 1:N], colg[j, k] <= sum(colg[j_g, k] for j_g in 1:(j-1)))
+    @constraint(m, max_gau_lig1[i in 1:I, k in 1:N, i_g in 1:(i-1)], ligg[i, k] <= ligg[i_g, k])
+    @constraint(m, max_gau_lig2[i in 1:I, k in 1:N], ligg[i, k] <= sum(ligg[i_g, k] for i_g in 1:(i-1)))
+    @constraint(m, max_gau_diagai1[i in 1:(I+J-1), k in 1:N, i_g in 1:(i-1)], diagaig[i, k] <= diagaig[i_g, k])
+    @constraint(m, max_gau_diagai2[i in 1:(I+J-1), k in 1:N], diagaig[i, k] <= sum(diagaig[i_g, k] for i_g in 1:(i-1)))
+    @constraint(m, max_gau_diaggr1[i in 1:(I+J-1), k in 1:N, i_g in 1:(i-1)], diaggrg[i, k] <= diaggrg[i_g, k])
+    @constraint(m, max_gau_diaggr2[i in 1:(I+J-1), k in 1:N], diaggrg[i, k] <= sum(diaggrg[i_g, k] for i_g in 1:(i-1)))
+    #max a droite 
+    #min sur gauche et droite
 
 
 
-    println("In file resolution.jl, in method cplexSolve(), TODO: fix input and output, define the model")
 
     # Start a chronometer
     start = time()
@@ -57,10 +67,18 @@ function cplexSolve()
     # Solve the model
     optimize!(m)
 
-    # Return:
-    # 1 - true if an optimum is found
-    # 2 - the resolution time
-    return JuMP.primal_status(m) == JuMP.MathOptInterface.FEASIBLE_POINT, time() - start
+
+    duree = time() - start
+
+    solution_found = JuMP.primal_status(m) == JuMP.MathOptInterface.FEASIBLE_POINT
+    if solution_found
+        Vz = JuMP.value.(z)
+        Vz = round.(Int64, Vz)
+    else
+        Vz = Array{Int,N}(zeros(I, J, N))
+    end
+
+    return solution_found, duree, Vz
 
 end
 
