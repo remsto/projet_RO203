@@ -16,10 +16,10 @@ function cplexSolve(inputFile::String)
     # TODO
 
     n, I, J, Pa = readInputFile(inputFile)
-    N = (I * J)/n 
+    N = (I * J) / n
     @variable(m, z[1:I, 1:J, 1:N], Bin)
     @objective(m, Max, sum(z[1, j, 1] for j in 1:n))
-    
+
     @variable(m, 0 <= P[1:I, 1:J] <= 4, Int)
     @variable(m, col[1:J, 1:N], Bin)
     @variable(m, lig[1:I, 1:N], Bin)
@@ -44,12 +44,29 @@ function cplexSolve(inputFile::String)
     ####contraintes connexité 
 
     #max dans chaque direction 
-    @constraint(m, colmax[j in 1:J, k in 1:N], col[j, k] == max(z[i, j] for i in 1:I))
-    @constraint(m, ligmax[j in 1:J, k in 1:N], lig[j, k] == max(z[i, j] for i in 1:I))
-    @constraint(m, diagaimax[a in 1:(I+J-1), k in 1:N], diagai[a, k] == max(z[]))
-    for a in 1:(I+J-1)
-        if a <= I
-            if    
+    @constraint(m, colmax[j in 1:J, k in 1:N, i in 1:I], col[j, k] >= z[i, j, k])
+    @constraint(m, colmax_sum[j in 1:J, k in 1:N], col[j, k] <= sum(z[i, j, k] for i in 1:I))
+    @constraint(m, ligmax[i in 1:I, k in 1:N, j in 1:J], lig[i, k] >= z[i, j, k])
+    @constraint(m, ligmax_sum[i in 1:I, k in 1:N], lig[i, k] <= sum(z[i, j, k] for i in 1:I))
+
+    @constraint(m, diagaimax1[a in 1:(I+J-1), k in 1:N, b in 0:min(a, I, J); a <= J && a <= I], diagai[a, k] >= z[a-b, 1+b])
+    @constraint(m, diagaimax1_sum[a in 1:(I+J-1), k in 1:N; a <= J && a <= I], diagai[a, k] <= sum(z[a-b, 1+b] for b in 0:min(a, I, J)))
+    @constraint(m, diagaimax2[a in 1:(I+J-1), k in 1:N, b in 0:min(a, I, J); a <= J && a > I], diagai[a, k] >= z[I-b, a-I+1+b])
+    @constraint(m, diagaimax2_sum[a in 1:(I+J-1), k in 1:N; a <= J && a > I], diagai[a, k] <= sum(z[I-b, a-I+1+b] for b in 0:min(a, I, J)))
+    @constraint(m, diagaimax3[a in 1:(I+J-1), k in 1:N, b in 0:min(I + J - a, I, J); a > J && a <= I], diagai[a, k] >= z[a-b, 1+b])
+    @constraint(m, diagaimax3_sum[a in 1:(I+J-1), k in 1:N; a > J && a <= I], diagai[a, k] <= sum(z[a-b, 1+b] for b in 0:min(I + J - a, I, J)))
+    @constraint(m, diagaimax4[a in 1:(I+J-1), k in 1:N, b in 0:min(I + J - a, I, J); a > J && a > I], diagai[a, k] >= z[I-b, a-I+1+b])
+    @constraint(m, diagaimax4_sum[a in 1:(I+J-1), k in 1:N; a > J && a > I], diagai[a, k] <= sum(z[I-b, a-I+1+b] for b in 0:min(I + J - a, I, J)))
+
+    @constraint(m, diaggrmax1[a in 1:(I+J-1), k in 1:N, b in 0:min(a, I, J); a <= J && a <= I], diaggr[a, k] >= z[I+1-a+b, 1+b])
+    @constraint(m, diaggrmax1_sum[a in 1:(I+J-1), k in 1:N; a <= J && a <= I], diaggr[a, k] <= sum(z[I+1-a+b, 1+b] for b in 0:min(a, I, J)))
+    @constraint(m, diaggrmax2[a in 1:(I+J-1), k in 1:N, b in 0:min(a, I, J); a <= J && a > I], diaggr[a, k] >= z[1+b, a-I+1+b])
+    @constraint(m, diaggrmax2_sum[a in 1:(I+J-1), k in 1:N; a <= J && a > I], diaggr[a, k] <= sum(z[1+b, a-I+1+b] for b in 0:min(a, I, J)))
+    @constraint(m, diaggrmax3[a in 1:(I+J-1), k in 1:N, b in 0:min(I + J - a, I, J); a > J && a <= I], diaggr[a, k] >= z[I+1-a+b, 1+b])
+    @constraint(m, diaggrmax3_sum[a in 1:(I+J-1), k in 1:N; a > J && a <= I], diaggr[a, k] <= sum(z[I+1-a+b, 1+b] for b in 0:min(I + J - a, I, J)))
+    @constraint(m, diaggrmax4[a in 1:(I+J-1), k in 1:N, b in 0:min(I + J - a, I, J); a > J && a > I], diaggr[a, k] >= z[1+b, a-I+1+b])
+    @constraint(m, diaggrmax4_sum[a in 1:(I+J-1), k in 1:N; a > J && a > I], diaggr[a, k] <= sum(z[1+b, a-I+1+b] for b in 0:min(I + J - a, I, J)))
+
 
     #max a gauche 
     @constraint(m, max_gau_col1[j in 2:J-1, k in 1:N, j_g in 1:(j-1)], colg[j, k] >= col[j_g, k])
@@ -70,10 +87,10 @@ function cplexSolve(inputFile::String)
     @constraint(m, max_gau_diaggr1[i in 2:(I+J-1)-1, k in 1:N, i_d in i+1:(I+J-1)], diaggrd[i, k] >= diaggr[i_d, k])
     @constraint(m, max_gau_diaggr2[i in 2:(I+J-1)-1, k in 1:N], diaggrd[i, k] <= sum(diaggr[i_d, k] for i_d in i+1:(I+J-1)))
     #min sur gauche et droite
-    @constraint(m, min_col[j in 2:J-1, k in 1:N], col[j,k]>=colg[j,k]+cold[j,k]-1)
-    @constraint(m, min_lig[i in 2:I-1, k in 1:N], lig[i,k]>=ligg[i,k]+ligd[i,k]-1)
-    @constraint(m, min_diagai[i in 2:(I+J-1)-1, k in 1:N], diagai[i,k]>=diagaig[i,k]+diagaid[i,k]-1)
-    @constraint(m, min_diaggr[i in 2:(I+J-1)-1, k in 1:N], diaggr[i,k]>=diaggrg[i,k]+diaggrd[i,k]-1)
+    @constraint(m, min_col[j in 2:J-1, k in 1:N], col[j, k] >= colg[j, k] + cold[j, k] - 1)
+    @constraint(m, min_lig[i in 2:I-1, k in 1:N], lig[i, k] >= ligg[i, k] + ligd[i, k] - 1)
+    @constraint(m, min_diagai[i in 2:(I+J-1)-1, k in 1:N], diagai[i, k] >= diagaig[i, k] + diagaid[i, k] - 1)
+    @constraint(m, min_diaggr[i in 2:(I+J-1)-1, k in 1:N], diaggr[i, k] >= diaggrg[i, k] + diaggrd[i, k] - 1)
 
 
 
