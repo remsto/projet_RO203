@@ -20,6 +20,7 @@ function cplexSolve(inputFile::String)
     @variable(m, z[1:I, 1:J, 1:N], Bin)
     @objective(m, Max, sum(z[1, j, 1] for j in 1:n))
 
+    @variable(m, Pr[1:I, 1:J, 1:N], Bin)
     @variable(m, 0 <= P[1:I, 1:J] <= 4, Int)
     @variable(m, col[1:J, 1:N], Bin)
     @variable(m, lig[1:I, 1:N], Bin)
@@ -39,7 +40,36 @@ function cplexSolve(inputFile::String)
     @constraint(m, case_exclusive[i in 1:I, j in 1:J], sum(z[i, j, k] for k in 1:N) == 1)
 
     #contraintes palissades 
-    @constraint(m, paliss[i in 1:I, j in 1:J; Pa[i, j] != -1], Pa[i, j] == P[i, j])
+    @constraint(m, produit1[i in 1:I, j in 1:J, k in 1:N], Pr[i, j, k] <= z[i, j, k])
+
+    @constraint(m, produit2corner1[k in 1:N], Pr[1, 1, k] <= 2 * z[1, 1, k] - z[2, 1, k] - z[1, 2, k] + 2)
+    @constraint(m, produit3corner1[k in 1:N], Pr[1, 1, k] >= 3 * z[1, 1, k] - z[2, 1, k] - z[1, 2, k] + 1)
+
+    @constraint(m, produit2corner2[k in 1:N], Pr[I, 1, k] <= 2 * z[I, 1, k] - z[I-1, 1, k] - z[I, 2, k] + 2)
+    @constraint(m, produit3corner2[k in 1:N], Pr[I, 1, k] >= 3 * z[I, 1, k] - z[I-1, 1, k] - z[I, 2, k] + 1)
+
+    @constraint(m, produit2corner3[k in 1:N], Pr[1, J, k] <= 2 * z[1, J, k] - z[2, J, k] - z[1, J-1, k] + 2)
+    @constraint(m, produit3corner3[k in 1:N], Pr[1, J, k] >= 3 * z[1, J, k] - z[2, J, k] - z[1, J-1, k] + 1)
+
+    @constraint(m, produit2corner4[k in 1:N], Pr[I, J, k] <= 2 * z[I, J, k] - z[I-1, J-1, k] - z[I, J-1, k] + 2)
+    @constraint(m, produit3corner4[k in 1:N], Pr[I, J, k] >= 3 * z[I, J, k] - z[I-1, J-1, k] - z[I, J-1, k] + 1)
+
+    @constraint(m, produit2border1[i in 2:(I-1), k in 1:N], Pr[i, 1, k] <= 3 * z[i, 1, k] - z[i+1, 1, k] - z[i-1, 1, k] - z[i, 2, k] + 1)
+    @constraint(m, produit3border1[i in 2:(I-1), k in 1:N], Pr[i, 1, k] >= 4 * z[i, 1, k] - z[i+1, 1, k] - z[i-1, 1, k] - z[i, 2, k])
+
+    @constraint(m, produit2border2[j in 2:(J-1), k in 1:N], Pr[1, j, k] <= 3 * z[1, j, k] - z[1, j+1, k] - z[1, j-1, k] - z[2, j, k] + 1)
+    @constraint(m, produit3border2[j in 2:(J-1), k in 1:N], Pr[1, j, k] >= 4 * z[1, j, k] - z[1, j+1, k] - z[1, j-1, k] - z[2, j, k])
+
+    @constraint(m, produit2border3[i in 2:(I-1), k in 1:N], Pr[i, J, k] <= 3 * z[i, J, k] - z[i-1, J, k] - z[i+1, J, k] - z[i, J-1, k] + 1)
+    @constraint(m, produit3border3[i in 2:(I-1), k in 1:N], Pr[i, J, k] >= 4 * z[i, J, k] - z[i-1, J, k] - z[i+1, J, k] - z[i, J-1, k])
+
+    @constraint(m, produit2border4[j in 2:(J-1), k in 1:N], Pr[I, j, k] <= 3 * z[I, J, k] - z[I, j-1, k] - z[I, j+1, k] - z[I-1, j, k] + 1)
+    @constraint(m, produit3border4[j in 2:(J-1), k in 1:N], Pr[I, j, k] >= 4 * z[I, J, k] - z[I, j-1, k] - z[I, j+1, k] - z[I-1, j, k])
+
+    @constraint(m, produit2mid[i in 2:(I-1), j in 2:(J-1), k in 1:N], Pr[i, j, k] <= 4 * z[i, j, k] - z[i+1, j, k] - z[i, j+1, k] - z[i-1, j, k] - z[i, j-1, k])
+    @constraint(m, produit3mid[i in 2:(I-1), j in 2:(J-1), k in 1:N], Pr[i, j, k] <= 5 * z[i, j, k] - z[i+1, j, k] - z[i, j+1, k] - z[i-1, j, k] - z[i, j-1, k] - 1)
+
+    @constraint(m, paliss[i in 1:I, j in 1:J; Pa[i, j] != -1], Pa[i, j] == sum(Pr[i, j, k] for k in 1:N))
 
     ####contraintes connexité 
 
@@ -95,6 +125,7 @@ function cplexSolve(inputFile::String)
 
 
 
+
     # Start a chronometer
     start = time()
 
@@ -109,7 +140,7 @@ function cplexSolve(inputFile::String)
         Vz = JuMP.value.(z)
         Vz = round.(Int64, Vz)
     else
-        Vz = Array{Int,N}(zeros(I, J, N))
+        Vz = Array{Int,3}(zeros(I, J, N))
     end
 
     return solution_found, duree, Vz
