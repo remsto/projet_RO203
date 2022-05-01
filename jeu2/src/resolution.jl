@@ -16,7 +16,7 @@ function cplexSolve(inputFile::String)
     # TODO
 
     n, I, J, Pa = readInputFile(inputFile)
-    N = n / (I * J)
+    N = (I * J)/n 
     @variable(m, z[1:I, 1:J, 1:N], Bin)
     @objective(m, Max, sum(z[1, j, 1] for j in 1:n))
     
@@ -42,6 +42,7 @@ function cplexSolve(inputFile::String)
     @constraint(m, paliss[i in 1:I, j in 1:J; Pa[i, j] != -1], Pa[i, j] == P[i, j])
 
     ####contraintes connexité 
+
     #max dans chaque direction 
     @constraint(m, colmax[j in 1:J, k in 1:N], col[j, k] == max(z[i, j] for i in 1:I))
     @constraint(m, ligmax[j in 1:J, k in 1:N], lig[j, k] == max(z[i, j] for i in 1:I))
@@ -49,17 +50,30 @@ function cplexSolve(inputFile::String)
     for a in 1:(I+J-1)
         if a <= I
             if    
+
     #max a gauche 
-    @constraint(m, max_gau_col1[j in 1:J, k in 1:N, j_g in 1:(j-1)], colg[j, k] <= col[j_g, k])
-    @constraint(m, max_gau_col2[j in 1:J, k in 1:N], colg[j, k] <= sum(col[j_g, k] for j_g in 1:(j-1)))
-    @constraint(m, max_gau_lig1[i in 1:I, k in 1:N, i_g in 1:(i-1)], ligg[i, k] <= ligg[i_g, k])
-    @constraint(m, max_gau_lig2[i in 1:I, k in 1:N], ligg[i, k] <= sum(ligg[i_g, k] for i_g in 1:(i-1)))
-    @constraint(m, max_gau_diagai1[i in 1:(I+J-1), k in 1:N, i_g in 1:(i-1)], diagaig[i, k] <= diagaig[i_g, k])
-    @constraint(m, max_gau_diagai2[i in 1:(I+J-1), k in 1:N], diagaig[i, k] <= sum(diagaig[i_g, k] for i_g in 1:(i-1)))
-    @constraint(m, max_gau_diaggr1[i in 1:(I+J-1), k in 1:N, i_g in 1:(i-1)], diaggrg[i, k] <= diaggrg[i_g, k])
-    @constraint(m, max_gau_diaggr2[i in 1:(I+J-1), k in 1:N], diaggrg[i, k] <= sum(diaggrg[i_g, k] for i_g in 1:(i-1)))
+    @constraint(m, max_gau_col1[j in 2:J-1, k in 1:N, j_g in 1:(j-1)], colg[j, k] >= col[j_g, k])
+    @constraint(m, max_gau_col2[j in 2:J-1, k in 1:N], colg[j, k] <= sum(col[j_g, k] for j_g in 1:(j-1)))
+    @constraint(m, max_gau_lig1[i in 2:I-1, k in 1:N, i_g in 1:(i-1)], ligg[i, k] >= lig[i_g, k])
+    @constraint(m, max_gau_lig2[i in 2:I-1, k in 1:N], ligg[i, k] <= sum(lig[i_g, k] for i_g in 1:(i-1)))
+    @constraint(m, max_gau_diagai1[i in 2:(I+J-1)-1, k in 1:N, i_g in 1:(i-1)], diagaig[i, k] >= diagai[i_g, k])
+    @constraint(m, max_gau_diagai2[i in 2:(I+J-1)-1, k in 1:N], diagaig[i, k] <= sum(diagai[i_g, k] for i_g in 1:(i-1)))
+    @constraint(m, max_gau_diaggr1[i in 2:(I+J-1)-1, k in 1:N, i_g in 1:(i-1)], diaggrg[i, k] >= diaggr[i_g, k])
+    @constraint(m, max_gau_diaggr2[i in 2:(I+J-1)-1, k in 1:N], diaggrg[i, k] <= sum(diaggr[i_g, k] for i_g in 1:(i-1)))
     #max a droite 
+    @constraint(m, max_gau_col1[j in 2:J-1, k in 1:N, j_d in j+1:J], cold[j, k] >= col[j_d, k])
+    @constraint(m, max_gau_col2[j in 2:J-1, k in 1:N], cold[j, k] <= sum(col[j_d, k] for j_d in j+1:J))
+    @constraint(m, max_gau_lig1[i in 2:I-1, k in 1:N, i_d in i+1:I], ligd[i, k] >= lig[i_d, k])
+    @constraint(m, max_gau_lig2[i in 2:I-1, k in 1:N], ligd[i, k] <= sum(lig[i_d, k] for i_d in i+1:I))
+    @constraint(m, max_gau_diagai1[i in 2:(I+J-1)-1, k in 1:N, i_d in i+1:(I+J-1)], diagaid[i, k] >= diagai[i_d, k])
+    @constraint(m, max_gau_diagai2[i in 2:(I+J-1)-1, k in 1:N], diagaid[i, k] <= sum(diagai[i_d, k] for i_d in i+1:(I+J-1)))
+    @constraint(m, max_gau_diaggr1[i in 2:(I+J-1)-1, k in 1:N, i_d in i+1:(I+J-1)], diaggrd[i, k] >= diaggr[i_d, k])
+    @constraint(m, max_gau_diaggr2[i in 2:(I+J-1)-1, k in 1:N], diaggrd[i, k] <= sum(diaggr[i_d, k] for i_d in i+1:(I+J-1)))
     #min sur gauche et droite
+    @constraint(m, min_col[j in 2:J-1, k in 1:N], col[j,k]>=colg[j,k]+cold[j,k]-1)
+    @constraint(m, min_lig[i in 2:I-1, k in 1:N], lig[i,k]>=ligg[i,k]+ligd[i,k]-1)
+    @constraint(m, min_diagai[i in 2:(I+J-1)-1, k in 1:N], diagai[i,k]>=diagaig[i,k]+diagaid[i,k]-1)
+    @constraint(m, min_diaggr[i in 2:(I+J-1)-1, k in 1:N], diaggr[i,k]>=diaggrg[i,k]+diaggrd[i,k]-1)
 
 
 

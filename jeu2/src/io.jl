@@ -44,6 +44,73 @@ function readInputFile(inputFile::String)
 end
 
 
+
+function displayGrid(n::Int, I::Int, J::Int, Pa::Array{Int,2})
+
+
+    println("taille des zones : ", n, "\n")
+
+    println("Nombre de palissades : ")
+
+    for i in 1:I
+        print(" ")
+        for tiret in 1:I
+            print("----")
+        end
+        println()
+        for j in 1:J
+            print("| ")
+            if Pa[i, j] == -1
+                print(" ")
+            else
+                print(Pa[i, j])
+            end
+            print(" ")
+            if j == J
+                println("|")
+            end
+        end
+    end
+    print(" ")
+    for tiret in 1:I
+        print("----")
+    end
+    println()
+end
+
+
+function displaySolution(n::Int, I::Int, J::Int, sol::Array{Int,((I * J)/n)})
+
+    N = (I * J)/n
+    println("Répartition des zones :")
+
+    for i in 1:I
+        print(" ")
+        for tiret in 1:I
+            print("----")
+        end
+        println()
+        for j in 1:J
+            print("| ")
+            for k in 1:N 
+                if sol[i,j,k]==1
+                    print(k)
+                end 
+            print(" ")
+            if j == J
+                println("|")
+            end
+        end
+    end
+    print(" ")
+    for tiret in 1:I
+        print("----")
+    end
+    println()
+
+
+end
+
 """
 Create a pdf file which contains a performance diagram associated to the results of the ../res folder
 Display one curve for each subfolder of the ../res folder.
