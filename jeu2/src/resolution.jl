@@ -18,8 +18,8 @@ function cplexSolve()
     n, I, J, Pa = readInputFile("path")
     N = n / (I * J)
     @variable(m, z[1:I, 1:J, 1:N], Bin)
-    @objective(m, Max, sum(x[1, j, 1] for j in 1:n))
-
+    @objective(m, Max, sum(z[1, j, 1] for j in 1:n))
+    
     @variable(m, 0 <= P[1:I, 1:J] <= 4, Int)
     @variable(m, col[1:J, 1:N], Bin)
     @variable(m, lig[1:I, 1:N], Bin)
@@ -46,6 +46,9 @@ function cplexSolve()
     @constraint(m, colmax[j in 1:J, k in 1:N], col[j, k] == max(z[i, j] for i in 1:I))
     @constraint(m, ligmax[j in 1:J, k in 1:N], lig[j, k] == max(z[i, j] for i in 1:I))
     @constraint(m, diagaimax[a in 1:(I+J-1), k in 1:N], diagai[a, k] == max(z[]))
+    for a in 1:(I+J-1)
+        if a <= I
+            if    
 
 
 
