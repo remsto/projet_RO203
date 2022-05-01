@@ -418,6 +418,148 @@ function performanceDiagram(outputFile::String)
     end
 end
 
+
+
+
+function performanceDiagram_tempsfonctiontaille(outputFile::String)
+
+    resultFolder = "jeu1/res/"
+
+    # Maximal number of files in a subfolder
+    maxSize = 0
+
+    # Number of subfolders
+    subfolderCount = 0
+
+    folderName = Array{String,1}()
+
+    # For each file in the result folder
+    for file in readdir(resultFolder)
+
+        path = resultFolder * file
+
+        # If it is a subfolder
+        if isdir(path)
+
+            folderName = vcat(folderName, file)
+
+            subfolderCount += 1
+            folderSize = size(readdir(path), 1)
+
+            if maxSize < folderSize
+                maxSize = folderSize
+            end
+        end
+    end
+
+
+    # Array that will contain the resolution times (one line for each subfolder)
+    results = Array{Float64}(undef, subfolderCount, maxSize)
+    #println("taille tableau",subfolderCount, " ", maxSize)
+
+    for i in 1:subfolderCount
+        for j in 1:maxSize
+            results[i, j] = Inf
+        end
+    end
+
+    folderCount = 0
+    maxSolveTime = 0
+
+
+    # For each subfolder
+    for file in readdir(resultFolder)
+
+        path = resultFolder * file
+
+        if isdir(path)
+
+            folderCount += 1
+            fileCount = 0
+
+            # For each text file in the subfolder
+            for resultFile in filter(x -> occursin(".txt", x), readdir(path))
+
+                fileCount += 1
+
+                include(path * "/" * resultFile)
+
+                if isOptimal
+                    results[folderCount, fileCount] = solveTime
+
+                    if solveTime > maxSolveTime
+                        maxSolveTime = solveTime
+                    end
+                end
+            end
+        end
+    end
+
+    println("Max solve time: ", maxSolveTime)
+    #println("result ", size(results, 1))
+
+    # For each line to plot
+    for dim in 1:size(results, 1)
+
+        x = Array{Float64,1}()
+        y = Array{Float64,1}()
+
+        # x coordinate of the previous inflexion point
+        previousX = 0
+        previousY = 0
+
+        append!(x, previousX)
+        append!(y, previousY)
+
+        # Current position in the line
+        currentId = 1
+        currentsize = 1
+        same_size = 150
+        nb_size_egal = 1
+        taille_grille = [10 11 12 4 5 6 7 8 9]
+
+
+        # While the end of the line is not reached 
+        while currentId != size(results, 2) && results[dim, currentId] != Inf
+            nb_size_egal = 0
+            sum_taille_egal = 0
+
+            # While the value is for an equal size  
+            while (nb_size_egal != same_size)
+                sum_taille_egal += results[dim, currentId]
+                nb_size_egal += 1
+                currentId += 1
+
+            end
+
+
+            # Add the proper points
+            append!(x, taille_grille[currentsize])
+            append!(y, sum_taille_egal / same_size)
+
+            currentsize += 1
+
+        end
+        x = vcat(x[1], x[5:10], x[2:4])
+        y = vcat(y[1], y[5:10], y[2:4])
+
+        # If it is the first subfolder
+
+        if dim == 1
+            # Draw a new plot
+            plot(x, y, label=folderName[dim], legend=:bottomright, xaxis="taille grille", yaxis="Temps moyen résolution", linewidth=3)
+            savefig(outputFile)
+            # Otherwise 
+        else
+            # Add the new curve to the created plot
+            savefig(plot!(x, y, label=folderName[dim], linewidth=3), outputFile)
+        end
+    end
+end
+
+
+
+
 """
 Create a latex file which contains an array with the results of the ../res folder.
 Each subfolder of the ../res folder contains the results of a resolution method.

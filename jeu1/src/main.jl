@@ -5,8 +5,9 @@ include("generation.jl")
 generateDataSet()
 solveDataSet()
 
-performanceDiagram("../res/diagramme.pdf")
-resultsArray("../res/Array.tex")
+performanceDiagram("jeu1/res/diagramme2.pdf")
+resultsArray("jeu1/res/Array2.tex")
+performanceDiagram_tempsfonctiontaille("jeu1/res/diagramme_tempstaille.pdf")
 
 
 
