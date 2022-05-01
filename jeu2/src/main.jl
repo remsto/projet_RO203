@@ -3,7 +3,7 @@ include("generation.jl")
 include("io.jl")
 include("resolution.jl")
 
-n, I, J, Pa = readInputFile("jeu2/data/instanceTest.txt")
+n, I, J, Pa = readInputFile("jeu2/data/instanceTestVnr.txt")
 displayGrid(n, I, J, Pa)
 found, duree, sol = cplexSolve("jeu2/data/instanceTestVnr.txt")
 displaySolution(n, I, J, sol)
