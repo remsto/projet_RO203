@@ -18,8 +18,8 @@ function cplexSolve(inputFile::String)
     n, I, J, Pa = readInputFile(inputFile)
     N = n / (I * J)
     @variable(m, z[1:I, 1:J, 1:N], Bin)
-    @objective(m, Max, sum(x[1, j, 1] for j in 1:n))
-
+    @objective(m, Max, sum(z[1, j, 1] for j in 1:n))
+    
     @variable(m, 0 <= P[1:I, 1:J] <= 4, Int)
     @variable(m, col[1:J, 1:N], Bin)
     @variable(m, lig[1:I, 1:N], Bin)
@@ -46,6 +46,9 @@ function cplexSolve(inputFile::String)
     @constraint(m, colmax[j in 1:J, k in 1:N], col[j, k] == max(z[i, j] for i in 1:I))
     @constraint(m, ligmax[j in 1:J, k in 1:N], lig[j, k] == max(z[i, j] for i in 1:I))
     @constraint(m, diagaimax[a in 1:(I+J-1), k in 1:N], diagai[a, k] == max(z[]))
+    for a in 1:(I+J-1)
+        if a <= I
+            if    
     #max a gauche 
     @constraint(m, max_gau_col1[j in 1:J, k in 1:N, j_g in 1:(j-1)], colg[j, k] <= col[j_g, k])
     @constraint(m, max_gau_col2[j in 1:J, k in 1:N], colg[j, k] <= sum(col[j_g, k] for j_g in 1:(j-1)))
