@@ -20,7 +20,7 @@ function cplexSolve(inputFile::String)
     @variable(m, z[1:I, 1:J, 1:N], Bin)
     @objective(m, Max, sum(z[1, j, 1] for j in 1:n))
 
-    @variable(m, Pr[1:I, 1:J, 1:N], Bin)
+    @variable(m, Prod[1:I, 1:J, 1:N, 1:4], Bin)
     @variable(m, 0 <= P[1:I, 1:J] <= 4, Int)
     @variable(m, col[1:J, 1:N], Bin)
     @variable(m, lig[1:I, 1:N], Bin)
@@ -40,87 +40,190 @@ function cplexSolve(inputFile::String)
     @constraint(m, case_exclusive[i in 1:I, j in 1:J], sum(z[i, j, k] for k in 1:N) == 1)
 
     #contraintes palissades 
-    @constraint(m, produit1[i in 1:I, j in 1:J, k in 1:N], Pr[i, j, k] <= z[i, j, k])
+    @constraint(m, produit1[i in 1:I, j in 1:J, k in 1:N, a in 1:4], Prod[i, j, k, a] <= z[i, j, k])
 
-    @constraint(m, produit2corner1[k in 1:N], Pr[1, 1, k] <= 2 * z[1, 1, k] - z[2, 1, k] - z[1, 2, k] + 2)
-    @constraint(m, produit3corner1[k in 1:N], Pr[1, 1, k] >= 3 * z[1, 1, k] - z[2, 1, k] - z[1, 2, k] + 1)
+    # @constraint(m, produit2corner1[k in 1:N], Prod[1, 1, k] <= 2 * z[1, 1, k] - z[2, 1, k] - z[1, 2, k] + 2)
+    # @constraint(m, produit3corner1[k in 1:N], Prod[1, 1, k] >= 3 * z[1, 1, k] - z[2, 1, k] - z[1, 2, k] + 1)
 
-    @constraint(m, produit2corner2[k in 1:N], Pr[I, 1, k] <= 2 * z[I, 1, k] - z[I-1, 1, k] - z[I, 2, k] + 2)
-    @constraint(m, produit3corner2[k in 1:N], Pr[I, 1, k] >= 3 * z[I, 1, k] - z[I-1, 1, k] - z[I, 2, k] + 1)
+    @constraint(m, produit2_1corner1[k in 1:N], Prod[1, 1, k, 1] <= z[2, 1, k])
+    @constraint(m, produit3_1corner1[k in 1:N], Prod[1, 1, k, 1] >= z[2, 1, k] + z[1, 1, k] - 1)
 
-    @constraint(m, produit2corner3[k in 1:N], Pr[1, J, k] <= 2 * z[1, J, k] - z[2, J, k] - z[1, J-1, k] + 2)
-    @constraint(m, produit3corner3[k in 1:N], Pr[1, J, k] >= 3 * z[1, J, k] - z[2, J, k] - z[1, J-1, k] + 1)
+    @constraint(m, produit2_2corner1[k in 1:N], Prod[1, 1, k, 2] <= z[1, 2, k])
+    @constraint(m, produit3_2corner1[k in 1:N], Prod[1, 1, k, 2] >= z[1, 2, k] + z[1, 1, k] - 1)
 
-    @constraint(m, produit2corner4[k in 1:N], Pr[I, J, k] <= 2 * z[I, J, k] - z[I-1, J-1, k] - z[I, J-1, k] + 2)
-    @constraint(m, produit3corner4[k in 1:N], Pr[I, J, k] >= 3 * z[I, J, k] - z[I-1, J-1, k] - z[I, J-1, k] + 1)
+    if Pa[1, 1] != -1
+        @constraint(m, paliss_corner1, Pa[1, 1] == 2 + sum(2 * z[1, 1, k] - sum(Prod[1, 1, k, a] for a in 1:2) for k in 1:N))
+    end
 
-    @constraint(m, produit2border1[i in 2:(I-1), k in 1:N], Pr[i, 1, k] <= 3 * z[i, 1, k] - z[i+1, 1, k] - z[i-1, 1, k] - z[i, 2, k] + 1)
-    @constraint(m, produit3border1[i in 2:(I-1), k in 1:N], Pr[i, 1, k] >= 4 * z[i, 1, k] - z[i+1, 1, k] - z[i-1, 1, k] - z[i, 2, k])
+    # @constraint(m, produit2corner2[k in 1:N], Prod[I, 1, k] <= 2 * z[I, 1, k] - z[I-1, 1, k] - z[I, 2, k] + 2)
+    # @constraint(m, produit3corner2[k in 1:N], Prod[I, 1, k] >= 3 * z[I, 1, k] - z[I-1, 1, k] - z[I, 2, k] + 1)
 
-    @constraint(m, produit2border2[j in 2:(J-1), k in 1:N], Pr[1, j, k] <= 3 * z[1, j, k] - z[1, j+1, k] - z[1, j-1, k] - z[2, j, k] + 1)
-    @constraint(m, produit3border2[j in 2:(J-1), k in 1:N], Pr[1, j, k] >= 4 * z[1, j, k] - z[1, j+1, k] - z[1, j-1, k] - z[2, j, k])
 
-    @constraint(m, produit2border3[i in 2:(I-1), k in 1:N], Pr[i, J, k] <= 3 * z[i, J, k] - z[i-1, J, k] - z[i+1, J, k] - z[i, J-1, k] + 1)
-    @constraint(m, produit3border3[i in 2:(I-1), k in 1:N], Pr[i, J, k] >= 4 * z[i, J, k] - z[i-1, J, k] - z[i+1, J, k] - z[i, J-1, k])
+    @constraint(m, produit2_1corner2[k in 1:N], Prod[I, 1, k, 1] <= z[I-1, 1, k])
+    @constraint(m, produit3_1corner2[k in 1:N], Prod[I, 1, k, 1] >= z[I, 1, k] + z[I-1, 1, k] - 1)
 
-    @constraint(m, produit2border4[j in 2:(J-1), k in 1:N], Pr[I, j, k] <= 3 * z[I, J, k] - z[I, j-1, k] - z[I, j+1, k] - z[I-1, j, k] + 1)
-    @constraint(m, produit3border4[j in 2:(J-1), k in 1:N], Pr[I, j, k] >= 4 * z[I, J, k] - z[I, j-1, k] - z[I, j+1, k] - z[I-1, j, k])
+    @constraint(m, produit2_2corner2[k in 1:N], Prod[I, 1, k, 2] <= z[I, 2, k])
+    @constraint(m, produit3_2corner2[k in 1:N], Prod[I, 1, k, 2] >= z[I, 1, k] + z[I, 2, k] - 1)
 
-    @constraint(m, produit2mid[i in 2:(I-1), j in 2:(J-1), k in 1:N], Pr[i, j, k] <= 4 * z[i, j, k] - z[i+1, j, k] - z[i, j+1, k] - z[i-1, j, k] - z[i, j-1, k])
-    @constraint(m, produit3mid[i in 2:(I-1), j in 2:(J-1), k in 1:N], Pr[i, j, k] <= 5 * z[i, j, k] - z[i+1, j, k] - z[i, j+1, k] - z[i-1, j, k] - z[i, j-1, k] - 1)
+    if Pa[I, 1] != -1
+        @constraint(m, paliss_corner2, Pa[I, 1] == 2 + sum(2 * z[I, 1, k] - sum(Prod[I, 1, k, a] for a in 1:2) for k in 1:N))
+    end
 
-    @constraint(m, paliss[i in 1:I, j in 1:J; Pa[i, j] != -1], Pa[i, j] == sum(Pr[i, j, k] for k in 1:N))
+    # @constraint(m, produit2corner3[k in 1:N], Prod[1, J, k] <= 2 * z[1, J, k] - z[2, J, k] - z[1, J-1, k] + 2)
+    # @constraint(m, produit3corner3[k in 1:N], Prod[1, J, k] >= 3 * z[1, J, k] - z[2, J, k] - z[1, J-1, k] + 1)
+
+    @constraint(m, produit2_1corner3[k in 1:N], Prod[1, J, k, 1] <= z[2, J, k])
+    @constraint(m, produit3_1corner3[k in 1:N], Prod[1, J, k, 1] >= z[1, J, k] + z[2, J, k] - 1)
+
+    @constraint(m, produit2_2corner3[k in 1:N], Prod[1, J, k, 2] <= z[1, J-1, k])
+    @constraint(m, produit3_2corner3[k in 1:N], Prod[1, J, k, 2] >= z[1, J, k] + z[1, J-1, k] - 1)
+
+    if Pa[1, J] != -1
+        @constraint(m, paliss_corner3, Pa[1, J] == 2 + sum(2 * z[1, J, k] - sum(Prod[1, J, k, a] for a in 1:2) for k in 1:N))
+    end
+
+    # @constraint(m, produit2corner4[k in 1:N], Prod[I, J, k] <= 2 * z[I, J, k] - z[I-1, J-1, k] - z[I, J-1, k] + 2)
+    # @constraint(m, produit3corner4[k in 1:N], Prod[I, J, k] >= 3 * z[I, J, k] - z[I-1, J-1, k] - z[I, J-1, k] + 1)
+
+    @constraint(m, produit2_1corner4[k in 1:N], Prod[I, J, k, 1] <= z[I-1, J, k])
+    @constraint(m, produit3_1corner4[k in 1:N], Prod[I, J, k, 1] >= z[I, J, k] + z[I-1, J, k] - 1)
+
+    @constraint(m, produit2_2corner4[k in 1:N], Prod[I, J, k, 2] <= z[I, J-1, k])
+    @constraint(m, produit3_2corner4[k in 1:N], Prod[I, J, k, 2] >= z[I, J, k] + z[I, J-1, k] - 1)
+
+    if Pa[I, J] != -1
+        @constraint(m, paliss_corner4, Pa[I, J] == 2 + sum(2 * z[I, J, k] - sum(Prod[I, J, k, a] for a in 1:2) for k in 1:N))
+    end
+
+    # @constraint(m, produit2border1[i in 2:(I-1), k in 1:N], Prod[i, 1, k] <= 3 * z[i, 1, k] - z[i+1, 1, k] - z[i-1, 1, k] - z[i, 2, k] + 1)
+    # @constraint(m, produit3border1[i in 2:(I-1), k in 1:N], Prod[i, 1, k] >= 4 * z[i, 1, k] - z[i+1, 1, k] - z[i-1, 1, k] - z[i, 2, k])
+
+    @constraint(m, produit2_1border1[i in 2:(I-1), k in 1:N], Prod[i, 1, k, 1] <= z[i+1, 1, k])
+    @constraint(m, produit3_1border1[i in 2:(I-1), k in 1:N], Prod[i, 1, k, 1] >= z[i, 1, k] + z[i+1, 1, k] - 1)
+
+    @constraint(m, produit2_2border1[i in 2:(I-1), k in 1:N], Prod[i, 1, k, 2] <= z[i-1, 1, k])
+    @constraint(m, produit3_2border1[i in 2:(I-1), k in 1:N], Prod[i, 1, k, 2] >= z[i, 1, k] + z[i-1, 1, k] - 1)
+
+    @constraint(m, produit2_3border1[i in 2:(I-1), k in 1:N], Prod[i, 1, k, 3] <= z[i, 2, k])
+    @constraint(m, produit3_3border1[i in 2:(I-1), k in 1:N], Prod[i, 1, k, 3] >= z[i, 1, k] + z[i, 2, k] - 1)
+
+    @constraint(m, paliss_border1[i in 2:(I-1); Pa[i, 1] != -1], Pa[i, 1] == 1 + sum(3 * z[i, 1, k] - sum(Prod[i, 1, k, a] for a in 1:4) for k in 1:N))
+
+
+    # @constraint(m, produit2border2[j in 2:(J-1), k in 1:N], Prod[1, j, k] <= 3 * z[1, j, k] - z[1, j+1, k] - z[1, j-1, k] - z[2, j, k] + 1)
+    # @constraint(m, produit3border2[j in 2:(J-1), k in 1:N], Prod[1, j, k] >= 4 * z[1, j, k] - z[1, j+1, k] - z[1, j-1, k] - z[2, j, k])
+
+    @constraint(m, produit2_1border2[j in 2:(J-1), k in 1:N], Prod[1, j, k, 1] <= z[2, j, k])
+    @constraint(m, produit3_1border2[j in 2:(J-1), k in 1:N], Prod[1, j, k, 1] >= z[1, j, k] + z[2, j, k] - 1)
+
+    @constraint(m, produit2_2border2[j in 2:(J-1), k in 1:N], Prod[1, j, k, 2] <= z[1, j-1, k])
+    @constraint(m, produit3_2border2[j in 2:(J-1), k in 1:N], Prod[1, j, k, 2] >= z[1, j, k] + z[1, j-1, k] - 1)
+
+    @constraint(m, produit2_3border2[j in 2:(J-1), k in 1:N], Prod[1, j, k, 3] <= z[1, j+1, k])
+    @constraint(m, produit3_3border2[j in 2:(J-1), k in 1:N], Prod[1, j, k, 3] >= z[1, j, k] + z[1, j+1, k] - 1)
+
+    @constraint(m, paliss_border2[j in 2:(J-1); Pa[1, j] != -1], Pa[1, j] == 1 + sum(3 * z[1, j, k] - sum(Prod[1, j, k, a] for a in 1:4) for k in 1:N))
+
+
+
+    # @constraint(m, produit2border3[i in 2:(I-1), k in 1:N], Prod[i, J, k] <= 3 * z[i, J, k] - z[i-1, J, k] - z[i+1, J, k] - z[i, J-1, k] + 1)
+    # @constraint(m, produit3border3[i in 2:(I-1), k in 1:N], Prod[i, J, k] >= 4 * z[i, J, k] - z[i-1, J, k] - z[i+1, J, k] - z[i, J-1, k])
+
+    @constraint(m, produit2_1border3[i in 2:(I-1), k in 1:N], Prod[i, J, k, 1] <= z[i-1, J, k])
+    @constraint(m, produit3_1border3[i in 2:(I-1), k in 1:N], Prod[i, J, k, 1] >= z[i, J, k] + z[i-1, J, k] - 1)
+
+    @constraint(m, produit2_2border3[i in 2:(I-1), k in 1:N], Prod[i, J, k, 2] <= z[i+1, J, k])
+    @constraint(m, produit3_2border3[i in 2:(I-1), k in 1:N], Prod[i, J, k, 2] >= z[i, J, k] + z[i+1, J, k] - 1)
+
+    @constraint(m, produit2_3border3[i in 2:(I-1), k in 1:N], Prod[i, J, k, 3] <= z[i, J-1, k])
+    @constraint(m, produit3_3border3[i in 2:(I-1), k in 1:N], Prod[i, J, k, 3] >= z[i, J, k] + z[i, J-1, k] - 1)
+
+    @constraint(m, paliss_border3[i in 2:(I-1); Pa[i, J] != -1], Pa[i, J] == 1 + sum(3 * z[i, J, k] - sum(Prod[i, J, k, a] for a in 1:4) for k in 1:N))
+
+
+    # @constraint(m, produit2border4[j in 2:(J-1), k in 1:N], Prod[I, j, k] <= 3 * z[I, J, k] - z[I, j-1, k] - z[I, j+1, k] - z[I-1, j, k] + 1)
+    # @constraint(m, produit3border4[j in 2:(J-1), k in 1:N], Prod[I, j, k] >= 4 * z[I, J, k] - z[I, j-1, k] - z[I, j+1, k] - z[I-1, j, k])
+
+    @constraint(m, produit2_1border4[j in 2:(J-1), k in 1:N], Prod[I, j, k, 2] <= z[I-1, j, k])
+    @constraint(m, produit3_1border4[j in 2:(J-1), k in 1:N], Prod[I, j, k, 2] >= z[I, j, k] + z[I-1, j, k] - 1)
+
+    @constraint(m, produit2_2border4[j in 2:(J-1), k in 1:N], Prod[I, j, k, 2] <= z[I, j-1, k])
+    @constraint(m, produit3_2border4[j in 2:(J-1), k in 1:N], Prod[I, j, k, 2] >= z[I, j, k] + z[I, j-1, k] - 1)
+
+    @constraint(m, produit2_3border4[j in 2:(J-1), k in 1:N], Prod[I, j, k, 3] <= z[I, j+1, k])
+    @constraint(m, produit3_3border4[j in 2:(J-1), k in 1:N], Prod[I, j, k, 3] >= z[I, j, k] + z[I, j+1, k] - 1)
+
+    @constraint(m, paliss_border4[j in 2:(J-1); Pa[I, j] != -1], Pa[I, j] == 1 + sum(3 * z[I, j, k] - sum(Prod[I, j, k, a] for a in 1:4) for k in 1:N))
+
+
+
+    # @constraint(m, produit2mid[i in 2:(I-1), j in 2:(J-1), k in 1:N], Prod[i, j, k] <= 4 * z[i, j, k] - z[i+1, j, k] - z[i, j+1, k] - z[i-1, j, k] - z[i, j-1, k])
+    # @constraint(m, produit3mid[i in 2:(I-1), j in 2:(J-1), k in 1:N], Prod[i, j, k] <= 5 * z[i, j, k] - z[i+1, j, k] - z[i, j+1, k] - z[i-1, j, k] - z[i, j-1, k] - 1)
+
+    @constraint(m, produit2_1mid[i in 2:(I-1), j in 2:(J-1), k in 1:N], Prod[i, j, k, 1] <= z[i-1, j, k])
+    @constraint(m, produit3_1mid[i in 2:(I-1), j in 2:(J-1), k in 1:N], Prod[i, j, k, 1] >= z[i, j, k] + z[i-1, j, k] - 1)
+
+    @constraint(m, produit2_2mid[i in 2:(I-1), j in 2:(J-1), k in 1:N], Prod[i, j, k, 2] <= z[i+1, j, k])
+    @constraint(m, produit3_2mid[i in 2:(I-1), j in 2:(J-1), k in 1:N], Prod[i, j, k, 2] >= z[i, j, k] + z[i+1, j, k] - 1)
+
+    @constraint(m, produit2_3mid[i in 2:(I-1), j in 2:(J-1), k in 1:N], Prod[i, j, k, 3] <= z[i, j-1, k])
+    @constraint(m, produit3_3mid[i in 2:(I-1), j in 2:(J-1), k in 1:N], Prod[i, j, k, 3] >= z[i, j, k] + z[i, j-1, k] - 1)
+
+    @constraint(m, produit2_4mid[i in 2:(I-1), j in 2:(J-1), k in 1:N], Prod[i, j, k, 4] <= z[i, j+1, k])
+    @constraint(m, produit3_4mid[i in 2:(I-1), j in 2:(J-1), k in 1:N], Prod[i, j, k, 4] >= z[i, j, k] + z[i, j+1, k] - 1)
+
+    @constraint(m, paliss_mid[i in 2:(I-1), j in 2:(J-1); Pa[i, j] != -1], Pa[i, j] == sum(4 * z[i, j, k] - sum(Prod[i, j, k, a] for a in 1:4) for k in 1:N))
 
     ####contraintes connexité 
 
     #max dans chaque direction 
-    @constraint(m, colmax[j in 1:J, k in 1:N, i in 1:I], col[j, k] >= z[i, j, k])
-    @constraint(m, colmax_sum[j in 1:J, k in 1:N], col[j, k] <= sum(z[i, j, k] for i in 1:I))
-    @constraint(m, ligmax[i in 1:I, k in 1:N, j in 1:J], lig[i, k] >= z[i, j, k])
-    @constraint(m, ligmax_sum[i in 1:I, k in 1:N], lig[i, k] <= sum(z[i, j, k] for j in 1:J))
+    # @constraint(m, colmax[j in 1:J, k in 1:N, i in 1:I], col[j, k] >= z[i, j, k])
+    # @constraint(m, colmax_sum[j in 1:J, k in 1:N], col[j, k] <= sum(z[i, j, k] for i in 1:I))
+    # @constraint(m, ligmax[i in 1:I, k in 1:N, j in 1:J], lig[i, k] >= z[i, j, k])
+    # @constraint(m, ligmax_sum[i in 1:I, k in 1:N], lig[i, k] <= sum(z[i, j, k] for j in 1:J))
 
-    @constraint(m, diagaimax1[a in 1:(I+J-1), k in 1:N, b in 0:(min(a, I, J)-1); a <= J && a <= I], diagai[a, k] >= z[a-b, 1+b, k])
-    @constraint(m, diagaimax1_sum[a in 1:(I+J-1), k in 1:N; a <= J && a <= I], diagai[a, k] <= sum(z[a-b, 1+b, k] for b in 0:(min(a, I, J)-1)))
-    @constraint(m, diagaimax2[a in 1:(I+J-1), k in 1:N, b in 0:(min(a, I, J)-1); a <= J && a > I], diagai[a, k] >= z[I-b, a-I+1+b, k])
-    @constraint(m, diagaimax2_sum[a in 1:(I+J-1), k in 1:N; a <= J && a > I], diagai[a, k] <= sum(z[I-b, a-I+1+b, k] for b in 0:(min(a, I, J)-1)))
-    @constraint(m, diagaimax3[a in 1:(I+J-1), k in 1:N, b in 0:(min(I + J - a, I, J)-1); a > J && a <= I], diagai[a, k] >= z[a-b, 1+b, k])
-    @constraint(m, diagaimax3_sum[a in 1:(I+J-1), k in 1:N; a > J && a <= I], diagai[a, k] <= sum(z[a-b, 1+b, k] for b in 0:(min(I + J - a, I, J)-1)))
-    @constraint(m, diagaimax4[a in 1:(I+J-1), k in 1:N, b in 0:(min(I + J - a, I, J)-1); a > J && a > I], diagai[a, k] >= z[I-b, a-I+1+b, k])
-    @constraint(m, diagaimax4_sum[a in 1:(I+J-1), k in 1:N; a > J && a > I], diagai[a, k] <= sum(z[I-b, a-I+1+b, k] for b in 0:(min(I + J - a, I, J)-1)))
+    # @constraint(m, diagaimax1[a in 1:(I+J-1), k in 1:N, b in 0:(min(a, I, J)-1); a <= J && a <= I], diagai[a, k] >= z[a-b, 1+b, k])
+    # @constraint(m, diagaimax1_sum[a in 1:(I+J-1), k in 1:N; a <= J && a <= I], diagai[a, k] <= sum(z[a-b, 1+b, k] for b in 0:(min(a, I, J)-1)))
+    # @constraint(m, diagaimax2[a in 1:(I+J-1), k in 1:N, b in 0:(min(a, I, J)-1); a <= J && a > I], diagai[a, k] >= z[I-b, a-I+1+b, k])
+    # @constraint(m, diagaimax2_sum[a in 1:(I+J-1), k in 1:N; a <= J && a > I], diagai[a, k] <= sum(z[I-b, a-I+1+b, k] for b in 0:(min(a, I, J)-1)))
+    # @constraint(m, diagaimax3[a in 1:(I+J-1), k in 1:N, b in 0:(min(I + J - a, I, J)-1); a > J && a <= I], diagai[a, k] >= z[a-b, 1+b, k])
+    # @constraint(m, diagaimax3_sum[a in 1:(I+J-1), k in 1:N; a > J && a <= I], diagai[a, k] <= sum(z[a-b, 1+b, k] for b in 0:(min(I + J - a, I, J)-1)))
+    # @constraint(m, diagaimax4[a in 1:(I+J-1), k in 1:N, b in 0:(min(I + J - a, I, J)-1); a > J && a > I], diagai[a, k] >= z[I-b, a-I+1+b, k])
+    # @constraint(m, diagaimax4_sum[a in 1:(I+J-1), k in 1:N; a > J && a > I], diagai[a, k] <= sum(z[I-b, a-I+1+b, k] for b in 0:(min(I + J - a, I, J)-1)))
 
-    @constraint(m, diaggrmax1[a in 1:(I+J-1), k in 1:N, b in 0:(min(a, I, J)-1); a <= J && a <= I], diaggr[a, k] >= z[I+1-a+b, 1+b, k])
-    @constraint(m, diaggrmax1_sum[a in 1:(I+J-1), k in 1:N; a <= J && a <= I], diaggr[a, k] <= sum(z[I+1-a+b, 1+b, k] for b in 0:(min(a, I, J)-1)))
-    @constraint(m, diaggrmax2[a in 1:(I+J-1), k in 1:N, b in 0:(min(a, I, J)-1); a <= J && a > I], diaggr[a, k] >= z[1+b, a-I+1+b, k])
-    @constraint(m, diaggrmax2_sum[a in 1:(I+J-1), k in 1:N; a <= J && a > I], diaggr[a, k] <= sum(z[1+b, a-I+1+b, k] for b in 0:(min(a, I, J)-1)))
-    @constraint(m, diaggrmax3[a in 1:(I+J-1), k in 1:N, b in 0:(min(I + J - a, I, J)-1); a > J && a <= I], diaggr[a, k] >= z[I+1-a+b, 1+b, k])
-    @constraint(m, diaggrmax3_sum[a in 1:(I+J-1), k in 1:N; a > J && a <= I], diaggr[a, k] <= sum(z[I+1-a+b, 1+b, k] for b in 0:(min(I + J - a, I, J)-1)))
-    @constraint(m, diaggrmax4[a in 1:(I+J-1), k in 1:N, b in 0:(min(I + J - a, I, J)-1); a > J && a > I], diaggr[a, k] >= z[1+b, a-I+1+b, k])
-    @constraint(m, diaggrmax4_sum[a in 1:(I+J-1), k in 1:N; a > J && a > I], diaggr[a, k] <= sum(z[1+b, a-I+1+b, k] for b in 0:(min(I + J - a, I, J)-1)))
+    # @constraint(m, diaggrmax1[a in 1:(I+J-1), k in 1:N, b in 0:(min(a, I, J)-1); a <= J && a <= I], diaggr[a, k] >= z[I+1-a+b, 1+b, k])
+    # @constraint(m, diaggrmax1_sum[a in 1:(I+J-1), k in 1:N; a <= J && a <= I], diaggr[a, k] <= sum(z[I+1-a+b, 1+b, k] for b in 0:(min(a, I, J)-1)))
+    # @constraint(m, diaggrmax2[a in 1:(I+J-1), k in 1:N, b in 0:(min(a, I, J)-1); a <= J && a > I], diaggr[a, k] >= z[1+b, a-I+1+b, k])
+    # @constraint(m, diaggrmax2_sum[a in 1:(I+J-1), k in 1:N; a <= J && a > I], diaggr[a, k] <= sum(z[1+b, a-I+1+b, k] for b in 0:(min(a, I, J)-1)))
+    # @constraint(m, diaggrmax3[a in 1:(I+J-1), k in 1:N, b in 0:(min(I + J - a, I, J)-1); a > J && a <= I], diaggr[a, k] >= z[I+1-a+b, 1+b, k])
+    # @constraint(m, diaggrmax3_sum[a in 1:(I+J-1), k in 1:N; a > J && a <= I], diaggr[a, k] <= sum(z[I+1-a+b, 1+b, k] for b in 0:(min(I + J - a, I, J)-1)))
+    # @constraint(m, diaggrmax4[a in 1:(I+J-1), k in 1:N, b in 0:(min(I + J - a, I, J)-1); a > J && a > I], diaggr[a, k] >= z[1+b, a-I+1+b, k])
+    # @constraint(m, diaggrmax4_sum[a in 1:(I+J-1), k in 1:N; a > J && a > I], diaggr[a, k] <= sum(z[1+b, a-I+1+b, k] for b in 0:(min(I + J - a, I, J)-1)))
 
 
-    #max a gauche 
-    @constraint(m, max_gau_col1[j in 2:J-1, k in 1:N, j_g in 1:(j-1)], colg[j, k] >= col[j_g, k])
-    @constraint(m, max_gau_col2[j in 2:J-1, k in 1:N], colg[j, k] <= sum(col[j_g, k] for j_g in 1:(j-1)))
-    @constraint(m, max_gau_lig1[i in 2:I-1, k in 1:N, i_g in 1:(i-1)], ligg[i, k] >= lig[i_g, k])
-    @constraint(m, max_gau_lig2[i in 2:I-1, k in 1:N], ligg[i, k] <= sum(lig[i_g, k] for i_g in 1:(i-1)))
-    @constraint(m, max_gau_diagai1[i in 2:(I+J-1)-1, k in 1:N, i_g in 1:(i-1)], diagaig[i, k] >= diagai[i_g, k])
-    @constraint(m, max_gau_diagai2[i in 2:(I+J-1)-1, k in 1:N], diagaig[i, k] <= sum(diagai[i_g, k] for i_g in 1:(i-1)))
-    @constraint(m, max_gau_diaggr1[i in 2:(I+J-1)-1, k in 1:N, i_g in 1:(i-1)], diaggrg[i, k] >= diaggr[i_g, k])
-    @constraint(m, max_gau_diaggr2[i in 2:(I+J-1)-1, k in 1:N], diaggrg[i, k] <= sum(diaggr[i_g, k] for i_g in 1:(i-1)))
-    #max a droite 
-    @constraint(m, max_dro_col1[j in 2:J-1, k in 1:N, j_d in j+1:J], cold[j, k] >= col[j_d, k])
-    @constraint(m, max_dro_col2[j in 2:J-1, k in 1:N], cold[j, k] <= sum(col[j_d, k] for j_d in j+1:J))
-    @constraint(m, max_dro_lig1[i in 2:I-1, k in 1:N, i_d in i+1:I], ligd[i, k] >= lig[i_d, k])
-    @constraint(m, max_dro_lig2[i in 2:I-1, k in 1:N], ligd[i, k] <= sum(lig[i_d, k] for i_d in i+1:I))
-    @constraint(m, max_dro_diagai1[i in 2:(I+J-1)-1, k in 1:N, i_d in i+1:(I+J-1)], diagaid[i, k] >= diagai[i_d, k])
-    @constraint(m, max_dro_diagai2[i in 2:(I+J-1)-1, k in 1:N], diagaid[i, k] <= sum(diagai[i_d, k] for i_d in i+1:(I+J-1)))
-    @constraint(m, max_dro_diaggr1[i in 2:(I+J-1)-1, k in 1:N, i_d in i+1:(I+J-1)], diaggrd[i, k] >= diaggr[i_d, k])
-    @constraint(m, max_dro_diaggr2[i in 2:(I+J-1)-1, k in 1:N], diaggrd[i, k] <= sum(diaggr[i_d, k] for i_d in i+1:(I+J-1)))
-    #min sur gauche et droite
-    @constraint(m, min_col[j in 2:J-1, k in 1:N], col[j, k] >= colg[j, k] + cold[j, k] - 1)
-    @constraint(m, min_lig[i in 2:I-1, k in 1:N], lig[i, k] >= ligg[i, k] + ligd[i, k] - 1)
-    @constraint(m, min_diagai[i in 2:(I+J-1)-1, k in 1:N], diagai[i, k] >= diagaig[i, k] + diagaid[i, k] - 1)
-    @constraint(m, min_diaggr[i in 2:(I+J-1)-1, k in 1:N], diaggr[i, k] >= diaggrg[i, k] + diaggrd[i, k] - 1)
+    # #max a gauche 
+    # @constraint(m, max_gau_col1[j in 2:J-1, k in 1:N, j_g in 1:(j-1)], colg[j, k] >= col[j_g, k])
+    # @constraint(m, max_gau_col2[j in 2:J-1, k in 1:N], colg[j, k] <= sum(col[j_g, k] for j_g in 1:(j-1)))
+    # @constraint(m, max_gau_lig1[i in 2:I-1, k in 1:N, i_g in 1:(i-1)], ligg[i, k] >= lig[i_g, k])
+    # @constraint(m, max_gau_lig2[i in 2:I-1, k in 1:N], ligg[i, k] <= sum(lig[i_g, k] for i_g in 1:(i-1)))
+    # @constraint(m, max_gau_diagai1[i in 2:(I+J-1)-1, k in 1:N, i_g in 1:(i-1)], diagaig[i, k] >= diagai[i_g, k])
+    # @constraint(m, max_gau_diagai2[i in 2:(I+J-1)-1, k in 1:N], diagaig[i, k] <= sum(diagai[i_g, k] for i_g in 1:(i-1)))
+    # @constraint(m, max_gau_diaggr1[i in 2:(I+J-1)-1, k in 1:N, i_g in 1:(i-1)], diaggrg[i, k] >= diaggr[i_g, k])
+    # @constraint(m, max_gau_diaggr2[i in 2:(I+J-1)-1, k in 1:N], diaggrg[i, k] <= sum(diaggr[i_g, k] for i_g in 1:(i-1)))
+    # #max a droite 
+    # @constraint(m, max_dro_col1[j in 2:J-1, k in 1:N, j_d in j+1:J], cold[j, k] >= col[j_d, k])
+    # @constraint(m, max_dro_col2[j in 2:J-1, k in 1:N], cold[j, k] <= sum(col[j_d, k] for j_d in j+1:J))
+    # @constraint(m, max_dro_lig1[i in 2:I-1, k in 1:N, i_d in i+1:I], ligd[i, k] >= lig[i_d, k])
+    # @constraint(m, max_dro_lig2[i in 2:I-1, k in 1:N], ligd[i, k] <= sum(lig[i_d, k] for i_d in i+1:I))
+    # @constraint(m, max_dro_diagai1[i in 2:(I+J-1)-1, k in 1:N, i_d in i+1:(I+J-1)], diagaid[i, k] >= diagai[i_d, k])
+    # @constraint(m, max_dro_diagai2[i in 2:(I+J-1)-1, k in 1:N], diagaid[i, k] <= sum(diagai[i_d, k] for i_d in i+1:(I+J-1)))
+    # @constraint(m, max_dro_diaggr1[i in 2:(I+J-1)-1, k in 1:N, i_d in i+1:(I+J-1)], diaggrd[i, k] >= diaggr[i_d, k])
+    # @constraint(m, max_dro_diaggr2[i in 2:(I+J-1)-1, k in 1:N], diaggrd[i, k] <= sum(diaggr[i_d, k] for i_d in i+1:(I+J-1)))
+    # #min sur gauche et droite
+    # @constraint(m, min_col[j in 2:J-1, k in 1:N], col[j, k] >= colg[j, k] + cold[j, k] - 1)
+    # @constraint(m, min_lig[i in 2:I-1, k in 1:N], lig[i, k] >= ligg[i, k] + ligd[i, k] - 1)
+    # @constraint(m, min_diagai[i in 2:(I+J-1)-1, k in 1:N], diagai[i, k] >= diagaig[i, k] + diagaid[i, k] - 1)
+    # @constraint(m, min_diaggr[i in 2:(I+J-1)-1, k in 1:N], diaggr[i, k] >= diaggrg[i, k] + diaggrd[i, k] - 1)
 
 
 
@@ -141,6 +244,7 @@ function cplexSolve(inputFile::String)
         Vz = round.(Int64, Vz)
     else
         Vz = Array{Int,3}(zeros(I, J, N))
+
     end
 
     return solution_found, duree, Vz
