@@ -54,8 +54,8 @@ function displayGrid(n::Int, I::Int, J::Int, Pa::Array{Int,2})
 
     for i in 1:I
         print(" ")
-        for tiret in 1:I
-            print("----")
+        for tiret in 1:J
+            print("--- ")
         end
         println()
         for j in 1:J
@@ -72,8 +72,8 @@ function displayGrid(n::Int, I::Int, J::Int, Pa::Array{Int,2})
         end
     end
     print(" ")
-    for tiret in 1:I
-        print("----")
+    for tiret in 1:J
+        print("--- ")
     end
     println()
 end
@@ -86,8 +86,8 @@ function displaySolution(n::Int, I::Int, J::Int, sol::Array{Int,3})
 
     for i in 1:I
         print(" ")
-        for tiret in 1:I
-            print("----")
+        for tiret in 1:J
+            print("--- ")
         end
         println()
         for j in 1:J
@@ -104,11 +104,25 @@ function displaySolution(n::Int, I::Int, J::Int, sol::Array{Int,3})
         end
     end
     print(" ")
-    for tiret in 1:I
-        print("----")
+    for tiret in 1:J
+        print("--- ")
     end
     println()
 
+
+end
+
+function displaySolution_file(fout::IOStream, n::Int, I::Int, J::Int, Pa::Array{Int,2}, sol::Array{Int,3})
+
+    println(fout, "taille_zone = ", n)
+    println(fout, "nombre_ligne = ", I)
+    println(fout, "nombre_colonne = ", J)
+    print(fout, "\n")
+
+    println(fout, "tableau_palissade = ", Pa, "\n")
+
+
+    println(fout, "solution = ", sol, "\n")
 
 end
 

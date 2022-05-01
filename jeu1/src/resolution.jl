@@ -126,7 +126,6 @@ function solveDataSet()
 
                     # If a solution is found, write it
                     if isOptimal
-                        # TODO
                         displaySolution_file(fout, n, monstre_a_voir, nb_monstre, miroir, sol)
                     end
 
