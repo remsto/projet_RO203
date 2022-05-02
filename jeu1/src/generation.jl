@@ -119,7 +119,7 @@ Generate all the instances
 Remark: a grid is generated only if the corresponding output file does not already exist
 """
 function generateDataSet()
-    for n in 4:12
+    for n in 4:20
         for densite_miroir in 0.2:0.1:0.4
             for densite_miroir_aigu in 0.1:0.2:0.9
                 for iteration in 1:10

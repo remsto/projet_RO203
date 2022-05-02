@@ -516,7 +516,7 @@ function performanceDiagram_tempsfonctiontaille(outputFile::String)
         currentsize = 1
         same_size = 150
         nb_size_egal = 1
-        taille_grille = [10 11 12 4 5 6 7 8 9]
+        taille_grille = [10 11 12 13 14 15 16 17 18 19 20 4 5 6 7 8 9]
 
 
         # While the end of the line is not reached 
@@ -540,14 +540,14 @@ function performanceDiagram_tempsfonctiontaille(outputFile::String)
             currentsize += 1
 
         end
-        x = vcat(x[1], x[5:10], x[2:4])
-        y = vcat(y[1], y[5:10], y[2:4])
+        x = vcat(x[1], x[13:18], x[2:12])
+        y = vcat(y[1], y[13:18], y[2:12])
 
         # If it is the first subfolder
 
         if dim == 1
             # Draw a new plot
-            plot(x, y, label=folderName[dim], legend=:bottomright, xaxis="taille grille", yaxis="Temps moyen résolution", linewidth=3)
+            plot(x, y, label=folderName[dim], legend=:bottomright, xaxis="taille grille", yaxis="Temps moyen résolution (en s)", linewidth=3)
             savefig(outputFile)
             # Otherwise 
         else
