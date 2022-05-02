@@ -75,9 +75,9 @@ Remark: a grid is generated only if the corresponding output file does not alrea
 """
 function generateDataSet()
 
-    for I in 4:12
-        for J in 4:12
-            for n in 3:(I*J÷3)
+    for I in 8:30
+        for J in 8:30
+            for n in 8:((I*J)÷3)
                 if J * I % n == 0
                     for density in 0.1:0.1:0.5
                         for iteration in 1:5

@@ -3,6 +3,9 @@
 using JuMP
 using Plots
 import GR
+using LaTeXStrings
+using PlotlyJS
+using PyPlot
 
 """
 Read an instance from an input file
@@ -192,7 +195,7 @@ function performanceDiagram(outputFile::String)
             fileCount = 0
 
             # For each text file in the subfolder
-            for resultFile in filter(x -> occursin(".txt", x), readdir(path))
+            for resultFile in filter(x -> occursin("inst_L", x), readdir(path))
 
                 fileCount += 1
                 include(path * "/" * resultFile)
@@ -262,8 +265,8 @@ function performanceDiagram(outputFile::String)
         if dim == 1
 
             # Draw a new plot
-            plot(x, y, label=folderName[dim], legend=:bottomright, xaxis="Time (s)", yaxis="Solved instances", linewidth=3)
-
+            Plots.plot(x, y, label=folderName[dim], legend=:bottomright, xaxis="Time (s)", yaxis="Solved instances", linewidth=3)
+            Plots.savefig(outputFile)
             # Otherwise 
         else
             # Add the new curve to the created plot
@@ -439,4 +442,448 @@ function resultsArray(outputFile::String)
 
     close(fout)
 
+end
+
+
+
+function graph_temps_taille_zone(outputFiletaille::String)
+
+    resultFolder = "jeu2/res/"
+
+    # Maximal number of files in a subfolder
+    maxSize = 0
+
+    # Number of subfolders
+    subfolderCount = 0
+
+    folderName = Array{String,1}()
+
+    # For each file in the result folder
+    for file in readdir(resultFolder)
+
+        path = resultFolder * file
+
+        # If it is a subfolder
+        if isdir(path)
+
+            folderName = vcat(folderName, file)
+
+            subfolderCount += 1
+            folderSize = size(readdir(path), 1)
+
+            if maxSize < folderSize
+                maxSize = folderSize
+            end
+        end
+    end
+
+
+    # Array that will contain the resolution times (one line for each subfolder)
+    results = Array{Float64}(undef, subfolderCount + 4, maxSize)
+    nb_ligne = subfolderCount + 4
+    #4 lignes en plus avec le nombre de ligne, le nombre de colonne, la taille des zones, la densite, le temps  
+
+    for i in 1:subfolderCount
+        for j in 1:maxSize
+            results[i, j] = Inf
+        end
+    end
+
+    folderCount = 0
+    maxSolveTime = 0
+
+
+    # For each subfolder
+    for file in readdir(resultFolder)
+
+        path = resultFolder * file
+
+        if isdir(path)
+
+            folderCount += 1
+            fileCount = 0
+
+            # For each text file in the subfolder
+            for resultFile in filter(x -> occursin("inst_L", x), readdir(path))
+
+                fileCount += 1
+
+                include(path * "/" * resultFile)
+                nom_split = split(resultFile, "_")
+
+                #4 lignes en plus avec le nombre de ligne, le nombre de colonne, la taille des zones, la densite
+                results[nb_ligne-3, fileCount] = parse(Int, nom_split[2][2])
+                results[nb_ligne-2, fileCount] = parse(Int, nom_split[3][2])
+                results[nb_ligne-1, fileCount] = parse(Int, nom_split[4][6:end])
+                results[nb_ligne] = parse(Float64, nom_split[5][5:end])
+
+
+
+                if isOptimal
+                    results[folderCount, fileCount] = solveTime
+
+                    if solveTime > maxSolveTime
+                        maxSolveTime = solveTime
+                    end
+                end
+            end
+        end
+    end
+
+    println("Max solve time: ", maxSolveTime)
+    #println("result ", size(results, 1))
+
+    # For each line to plot
+    for dim in 1:size(results, 1)
+
+        taille = Array{Float64,1}()
+        taille_zone = Array{Float64,1}()
+        temps = Array{Float64,1}()
+        count = Array{Float64,1}()
+
+
+        # Current position in the line
+        currentId = 1
+
+
+        # While the end of the line is not reached 
+        while currentId != size(results, 2)
+
+            if results[dim, currentId] != Inf
+                est_place = false
+                size_taille = size(taille, 1)
+                it = 1
+                while !est_place && it <= size_taille
+                    if taille[it] == results[nb_ligne-2, currentId] * results[nb_ligne-3, currentId]
+                        if taille_zone[it] == results[nb_ligne-1, currentId]
+                            temps[it] += results[dim, currentId]
+                            count[it] += 1
+                            est_place = true
+                        end
+                    end
+                    it += 1
+
+                end
+
+
+
+                if !est_place
+                    append!(taille, results[nb_ligne-2, currentId] * results[nb_ligne-3, currentId])
+                    append!(taille_zone, results[nb_ligne-1, currentId])
+                    append!(temps, results[dim, currentId])
+                    append!(count, 1)
+                end
+
+            end
+            currentId += 1
+
+        end
+
+        for i in 1:size(taille, 1)
+            temps[i] = temps[i] / count[i]
+        end
+
+        if dim == 1
+
+            fig = CairoMakie.Figure(resolution=(1200, 800), fontsize=26)
+            axs = [Axis(fig[1, 1], title="Temps moyen de calcul du résultat (en s) en fonction des types de grille", xlabel="Taille de la grille (I*J)", ylabel="Taille des zones à créer")]
+            hm = CairoMakie.heatmap!(axs[1], taille, taille_zone, temps)
+            Colorbar(fig[1, 2], hm, height=Relative(1), ylabel="Temps moyen ")
+            CairoMakie.save(resultFolder * outputFiletaille, fig)
+        end
+    end
+end
+
+
+function graph_temps_densite(outputFiletaille::String)
+
+    resultFolder = "jeu2/res/"
+
+    # Maximal number of files in a subfolder
+    maxSize = 0
+
+    # Number of subfolders
+    subfolderCount = 0
+
+    folderName = Array{String,1}()
+
+    # For each file in the result folder
+    for file in readdir(resultFolder)
+
+        path = resultFolder * file
+
+        # If it is a subfolder
+        if isdir(path)
+
+            folderName = vcat(folderName, file)
+
+            subfolderCount += 1
+            folderSize = size(readdir(path), 1)
+
+            if maxSize < folderSize
+                maxSize = folderSize
+            end
+        end
+    end
+
+
+    # Array that will contain the resolution times (one line for each subfolder)
+    results = Array{Float64}(undef, subfolderCount + 4, maxSize)
+    nb_ligne = subfolderCount + 4
+    #4 lignes en plus avec le nombre de ligne, le nombre de colonne, la taille des zones, la densite, le temps  
+
+    for i in 1:subfolderCount
+        for j in 1:maxSize
+            results[i, j] = Inf
+        end
+    end
+
+    folderCount = 0
+    maxSolveTime = 0
+
+
+    # For each subfolder
+    for file in readdir(resultFolder)
+
+        path = resultFolder * file
+
+        if isdir(path)
+
+            folderCount += 1
+            fileCount = 0
+
+            # For each text file in the subfolder
+            for resultFile in filter(x -> occursin("inst_L", x), readdir(path))
+
+                fileCount += 1
+
+                include(path * "/" * resultFile)
+                nom_split = split(resultFile, "_")
+
+                #4 lignes en plus avec le nombre de ligne, le nombre de colonne, la taille des zones, la densite
+                results[nb_ligne-3, fileCount] = parse(Int, nom_split[2][2])
+                results[nb_ligne-2, fileCount] = parse(Int, nom_split[3][2])
+                results[nb_ligne-1, fileCount] = parse(Int, nom_split[4][6:end])
+                results[nb_ligne, fileCount] = parse(Float64, nom_split[5][5:end])
+
+
+
+                if isOptimal
+                    results[folderCount, fileCount] = solveTime
+
+                    if solveTime > maxSolveTime
+                        maxSolveTime = solveTime
+                    end
+                end
+            end
+        end
+    end
+
+    println("Max solve time: ", maxSolveTime)
+    #println("result ", size(results, 1))
+
+    # For each line to plot
+    for dim in 1:size(results, 1)
+
+        taille = Array{Float64,1}()
+        densite = Array{Float64,1}()
+        temps = Array{Float64,1}()
+        count = Array{Float64,1}()
+
+
+        # Current position in the line
+        currentId = 1
+
+
+        # While the end of the line is not reached 
+        while currentId != size(results, 2)
+
+            if results[dim, currentId] != Inf
+                est_place = false
+                size_taille = size(taille, 1)
+                it = 1
+                while !est_place && it <= size_taille
+                    if taille[it] == results[nb_ligne-2, currentId] * results[nb_ligne-3, currentId]
+                        if densite[it] == results[nb_ligne, currentId]
+                            temps[it] += results[dim, currentId]
+                            count[it] += 1
+                            est_place = true
+                        end
+                    end
+                    it += 1
+
+                end
+
+
+
+                if !est_place
+                    append!(taille, results[nb_ligne-2, currentId] * results[nb_ligne-3, currentId])
+                    append!(densite, results[nb_ligne, currentId])
+                    append!(temps, results[dim, currentId])
+                    append!(count, 1)
+                end
+
+            end
+            currentId += 1
+
+        end
+
+        for i in 1:size(taille, 1)
+            temps[i] = temps[i] / count[i]
+        end
+
+
+        if dim == 1
+
+            fig = CairoMakie.Figure(resolution=(1200, 800), fontsize=26)
+            axs = [Axis(fig[1, 1], title="Temps moyen de calcul du résultat (en s) en fonction des types de grille", xlabel="Taille de la grille (I*J)", ylabel="Densité de contraintes de palissades")]
+            hm = CairoMakie.heatmap!(axs[1], taille, densite, temps)
+            Colorbar(fig[1, 2], hm, height=Relative(1), ylabel="Temps moyen ")
+            CairoMakie.save(resultFolder * outputFiletaille, fig)
+        end
+    end
+end
+
+
+
+function plot_temps_taille(outputFile::String)
+
+    resultFolder = "jeu2/res/"
+
+    # Maximal number of files in a subfolder
+    maxSize = 0
+
+    # Number of subfolders
+    subfolderCount = 0
+
+    folderName = Array{String,1}()
+
+    # For each file in the result folder
+    for file in readdir(resultFolder)
+
+        path = resultFolder * file
+
+        # If it is a subfolder
+        if isdir(path)
+
+            folderName = vcat(folderName, file)
+
+            subfolderCount += 1
+            folderSize = size(readdir(path), 1)
+
+            if maxSize < folderSize
+                maxSize = folderSize
+            end
+        end
+    end
+
+
+    # Array that will contain the resolution times (one line for each subfolder)
+    results = Array{Float64}(undef, subfolderCount + 4, maxSize)
+    nb_ligne = subfolderCount + 4
+    #4 lignes en plus avec le nombre de ligne, le nombre de colonne, la taille des zones, la densite, le temps  
+
+    for i in 1:subfolderCount
+        for j in 1:maxSize
+            results[i, j] = Inf
+        end
+    end
+
+    folderCount = 0
+    maxSolveTime = 0
+
+
+    # For each subfolder
+    for file in readdir(resultFolder)
+
+        path = resultFolder * file
+
+        if isdir(path)
+
+            folderCount += 1
+            fileCount = 0
+
+            # For each text file in the subfolder
+            for resultFile in filter(x -> occursin("inst_L", x), readdir(path))
+
+                fileCount += 1
+
+                include(path * "/" * resultFile)
+                nom_split = split(resultFile, "_")
+
+                #4 lignes en plus avec le nombre de ligne, le nombre de colonne, la taille des zones, la densite
+                results[nb_ligne-3, fileCount] = parse(Int, nom_split[2][2])
+                results[nb_ligne-2, fileCount] = parse(Int, nom_split[3][2])
+                results[nb_ligne-1, fileCount] = parse(Int, nom_split[4][6:end])
+                results[nb_ligne, fileCount] = parse(Float64, nom_split[5][5:end])
+
+
+
+                if isOptimal
+                    results[folderCount, fileCount] = solveTime
+
+                    if solveTime > maxSolveTime
+                        maxSolveTime = solveTime
+                    end
+                end
+            end
+        end
+    end
+
+    println("Max solve time: ", maxSolveTime)
+    #println("result ", size(results, 1))
+
+    # For each line to plot
+    for dim in 1:size(results, 1)
+
+        taille = Array{Float64,1}()
+        temps = Array{Float64,1}()
+        count = Array{Float64,1}()
+
+
+        # Current position in the line
+        currentId = 1
+
+
+        # While the end of the line is not reached 
+        while currentId != size(results, 2)
+
+            if results[dim, currentId] != Inf
+                est_place = false
+                size_taille = size(taille, 1)
+                it = 1
+                while !est_place && it <= size_taille
+                    if taille[it] == results[nb_ligne-2, currentId] * results[nb_ligne-3, currentId]
+                        temps[it] += results[dim, currentId]
+                        count[it] += 1
+                        est_place = true
+                    end
+                    it += 1
+                end
+
+                if !est_place
+                    append!(taille, results[nb_ligne-2, currentId] * results[nb_ligne-3, currentId])
+                    append!(temps, results[dim, currentId])
+                    append!(count, 1)
+                end
+
+            end
+            currentId += 1
+
+        end
+
+        for i in 1:size(taille, 1)
+            temps[i] = temps[i] / count[i]
+        end
+
+
+        taille = vcat(taille[1:3], taille[6], taille[4], taille[7], taille[5], taille[8], taille[10], taille[9], taille[11:end])
+        temps = vcat(temps[1:3], temps[6], temps[4], temps[7], temps[5], temps[8], temps[10], temps[9], temps[11:end])
+
+        if dim == 1
+
+            Plots.plot(taille, temps, label=folderName[dim], legend=:bottomright, xaxis="taille grille", yaxis="Temps moyen résolution (en s)", linewidth=3)
+            savefig(resultFolder * outputFile)
+        end
+    end
 end

@@ -17,15 +17,18 @@ function cplexSolve(inputFile::String)
 
     n, I, J, Pa = readInputFile(inputFile)
     N = (I * J) ÷ n
+
+    @objective(m, Max, 0)
+
     @variable(m, z[1:I, 1:J, 1:N], Bin)
-    @objective(m, Max, sum(z[1, j, 1] for j in 1:n))
 
     @variable(m, Prod[1:I, 1:J, 1:N, 1:4], Bin)
-    @variable(m, 0 <= P[1:I, 1:J] <= 4, Int)
+
     @variable(m, col[1:J, 1:N], Bin)
     @variable(m, lig[1:I, 1:N], Bin)
     @variable(m, diagai[1:(I+J-1), 1:N], Bin)
     @variable(m, diaggr[1:(I+J-1), 1:N], Bin)
+
     @variable(m, colg[2:J, 1:N], Bin)
     @variable(m, cold[1:J-1, 1:N], Bin)
     @variable(m, ligg[2:I, 1:N], Bin)
@@ -39,140 +42,125 @@ function cplexSolve(inputFile::String)
     @constraint(m, case_par_zone[k in 1:N], sum(z[i, j, k] for i in 1:I for j in 1:J) == n)
     @constraint(m, case_exclusive[i in 1:I, j in 1:J], sum(z[i, j, k] for k in 1:N) == 1)
 
-    #contraintes palissades 
-    # @constraint(m, produit1[i in 1:I, j in 1:J, k in 1:N, a in 1:4], Prod[i, j, k, a] <= z[i, j, k])
-
-    # # @constraint(m, produit2corner1[k in 1:N], Prod[1, 1, k] <= 2 * z[1, 1, k] - z[2, 1, k] - z[1, 2, k] + 2)
-    # # @constraint(m, produit3corner1[k in 1:N], Prod[1, 1, k] >= 3 * z[1, 1, k] - z[2, 1, k] - z[1, 2, k] + 1)
-
-    # @constraint(m, produit2_1corner1[k in 1:N], Prod[1, 1, k, 1] <= z[2, 1, k])
-    # @constraint(m, produit3_1corner1[k in 1:N], Prod[1, 1, k, 1] >= z[2, 1, k] + z[1, 1, k] - 1)
-
-    # @constraint(m, produit2_2corner1[k in 1:N], Prod[1, 1, k, 2] <= z[1, 2, k])
-    # @constraint(m, produit3_2corner1[k in 1:N], Prod[1, 1, k, 2] >= z[1, 2, k] + z[1, 1, k] - 1)
-
-    # if Pa[1, 1] != -1
-    #     @constraint(m, paliss_corner1, Pa[1, 1] == 2 + sum(2 * z[1, 1, k] - sum(Prod[1, 1, k, a] for a in 1:2) for k in 1:N))
-    # end
-
-    # # @constraint(m, produit2corner2[k in 1:N], Prod[I, 1, k] <= 2 * z[I, 1, k] - z[I-1, 1, k] - z[I, 2, k] + 2)
-    # # @constraint(m, produit3corner2[k in 1:N], Prod[I, 1, k] >= 3 * z[I, 1, k] - z[I-1, 1, k] - z[I, 2, k] + 1)
-
-
-    # @constraint(m, produit2_1corner2[k in 1:N], Prod[I, 1, k, 1] <= z[I-1, 1, k])
-    # @constraint(m, produit3_1corner2[k in 1:N], Prod[I, 1, k, 1] >= z[I, 1, k] + z[I-1, 1, k] - 1)
-
-    # @constraint(m, produit2_2corner2[k in 1:N], Prod[I, 1, k, 2] <= z[I, 2, k])
-    # @constraint(m, produit3_2corner2[k in 1:N], Prod[I, 1, k, 2] >= z[I, 1, k] + z[I, 2, k] - 1)
-
-    # if Pa[I, 1] != -1
-    #     @constraint(m, paliss_corner2, Pa[I, 1] == 2 + sum(2 * z[I, 1, k] - sum(Prod[I, 1, k, a] for a in 1:2) for k in 1:N))
-    # end
-
-    # # @constraint(m, produit2corner3[k in 1:N], Prod[1, J, k] <= 2 * z[1, J, k] - z[2, J, k] - z[1, J-1, k] + 2)
-    # # @constraint(m, produit3corner3[k in 1:N], Prod[1, J, k] >= 3 * z[1, J, k] - z[2, J, k] - z[1, J-1, k] + 1)
-
-    # @constraint(m, produit2_1corner3[k in 1:N], Prod[1, J, k, 1] <= z[2, J, k])
-    # @constraint(m, produit3_1corner3[k in 1:N], Prod[1, J, k, 1] >= z[1, J, k] + z[2, J, k] - 1)
-
-    # @constraint(m, produit2_2corner3[k in 1:N], Prod[1, J, k, 2] <= z[1, J-1, k])
-    # @constraint(m, produit3_2corner3[k in 1:N], Prod[1, J, k, 2] >= z[1, J, k] + z[1, J-1, k] - 1)
-
-    # if Pa[1, J] != -1
-    #     @constraint(m, paliss_corner3, Pa[1, J] == 2 + sum(2 * z[1, J, k] - sum(Prod[1, J, k, a] for a in 1:2) for k in 1:N))
-    # end
-
-    # # @constraint(m, produit2corner4[k in 1:N], Prod[I, J, k] <= 2 * z[I, J, k] - z[I-1, J-1, k] - z[I, J-1, k] + 2)
-    # # @constraint(m, produit3corner4[k in 1:N], Prod[I, J, k] >= 3 * z[I, J, k] - z[I-1, J-1, k] - z[I, J-1, k] + 1)
-
-    # @constraint(m, produit2_1corner4[k in 1:N], Prod[I, J, k, 1] <= z[I-1, J, k])
-    # @constraint(m, produit3_1corner4[k in 1:N], Prod[I, J, k, 1] >= z[I, J, k] + z[I-1, J, k] - 1)
-
-    # @constraint(m, produit2_2corner4[k in 1:N], Prod[I, J, k, 2] <= z[I, J-1, k])
-    # @constraint(m, produit3_2corner4[k in 1:N], Prod[I, J, k, 2] >= z[I, J, k] + z[I, J-1, k] - 1)
-
-    # if Pa[I, J] != -1
-    #     @constraint(m, paliss_corner4, Pa[I, J] == 2 + sum(2 * z[I, J, k] - sum(Prod[I, J, k, a] for a in 1:2) for k in 1:N))
-    # end
-
-    # # @constraint(m, produit2border1[i in 2:(I-1), k in 1:N], Prod[i, 1, k] <= 3 * z[i, 1, k] - z[i+1, 1, k] - z[i-1, 1, k] - z[i, 2, k] + 1)
-    # # @constraint(m, produit3border1[i in 2:(I-1), k in 1:N], Prod[i, 1, k] >= 4 * z[i, 1, k] - z[i+1, 1, k] - z[i-1, 1, k] - z[i, 2, k])
-
-    # @constraint(m, produit2_1border1[i in 2:(I-1), k in 1:N], Prod[i, 1, k, 1] <= z[i+1, 1, k])
-    # @constraint(m, produit3_1border1[i in 2:(I-1), k in 1:N], Prod[i, 1, k, 1] >= z[i, 1, k] + z[i+1, 1, k] - 1)
-
-    # @constraint(m, produit2_2border1[i in 2:(I-1), k in 1:N], Prod[i, 1, k, 2] <= z[i-1, 1, k])
-    # @constraint(m, produit3_2border1[i in 2:(I-1), k in 1:N], Prod[i, 1, k, 2] >= z[i, 1, k] + z[i-1, 1, k] - 1)
-
-    # @constraint(m, produit2_3border1[i in 2:(I-1), k in 1:N], Prod[i, 1, k, 3] <= z[i, 2, k])
-    # @constraint(m, produit3_3border1[i in 2:(I-1), k in 1:N], Prod[i, 1, k, 3] >= z[i, 1, k] + z[i, 2, k] - 1)
-
-    # @constraint(m, paliss_border1[i in 2:(I-1); Pa[i, 1] != -1], Pa[i, 1] == 1 + sum(3 * z[i, 1, k] - sum(Prod[i, 1, k, a] for a in 1:3) for k in 1:N))
-
-
-    # # @constraint(m, produit2border2[j in 2:(J-1), k in 1:N], Prod[1, j, k] <= 3 * z[1, j, k] - z[1, j+1, k] - z[1, j-1, k] - z[2, j, k] + 1)
-    # # @constraint(m, produit3border2[j in 2:(J-1), k in 1:N], Prod[1, j, k] >= 4 * z[1, j, k] - z[1, j+1, k] - z[1, j-1, k] - z[2, j, k])
-
-    # @constraint(m, produit2_1border2[j in 2:(J-1), k in 1:N], Prod[1, j, k, 1] <= z[2, j, k])
-    # @constraint(m, produit3_1border2[j in 2:(J-1), k in 1:N], Prod[1, j, k, 1] >= z[1, j, k] + z[2, j, k] - 1)
-
-    # @constraint(m, produit2_2border2[j in 2:(J-1), k in 1:N], Prod[1, j, k, 2] <= z[1, j-1, k])
-    # @constraint(m, produit3_2border2[j in 2:(J-1), k in 1:N], Prod[1, j, k, 2] >= z[1, j, k] + z[1, j-1, k] - 1)
-
-    # @constraint(m, produit2_3border2[j in 2:(J-1), k in 1:N], Prod[1, j, k, 3] <= z[1, j+1, k])
-    # @constraint(m, produit3_3border2[j in 2:(J-1), k in 1:N], Prod[1, j, k, 3] >= z[1, j, k] + z[1, j+1, k] - 1)
-
-    # @constraint(m, paliss_border2[j in 2:(J-1); Pa[1, j] != -1], Pa[1, j] == 1 + sum(3 * z[1, j, k] - sum(Prod[1, j, k, a] for a in 1:3) for k in 1:N))
 
 
 
-    # # @constraint(m, produit2border3[i in 2:(I-1), k in 1:N], Prod[i, J, k] <= 3 * z[i, J, k] - z[i-1, J, k] - z[i+1, J, k] - z[i, J-1, k] + 1)
-    # # @constraint(m, produit3border3[i in 2:(I-1), k in 1:N], Prod[i, J, k] >= 4 * z[i, J, k] - z[i-1, J, k] - z[i+1, J, k] - z[i, J-1, k])
-
-    # @constraint(m, produit2_1border3[i in 2:(I-1), k in 1:N], Prod[i, J, k, 1] <= z[i-1, J, k])
-    # @constraint(m, produit3_1border3[i in 2:(I-1), k in 1:N], Prod[i, J, k, 1] >= z[i, J, k] + z[i-1, J, k] - 1)
-
-    # @constraint(m, produit2_2border3[i in 2:(I-1), k in 1:N], Prod[i, J, k, 2] <= z[i+1, J, k])
-    # @constraint(m, produit3_2border3[i in 2:(I-1), k in 1:N], Prod[i, J, k, 2] >= z[i, J, k] + z[i+1, J, k] - 1)
-
-    # @constraint(m, produit2_3border3[i in 2:(I-1), k in 1:N], Prod[i, J, k, 3] <= z[i, J-1, k])
-    # @constraint(m, produit3_3border3[i in 2:(I-1), k in 1:N], Prod[i, J, k, 3] >= z[i, J, k] + z[i, J-1, k] - 1)
-
-    # @constraint(m, paliss_border3[i in 2:(I-1); Pa[i, J] != -1], Pa[i, J] == 1 + sum(3 * z[i, J, k] - sum(Prod[i, J, k, a] for a in 1:3) for k in 1:N))
+    ####contraintes palissades 
+    #pour tous
+    @constraint(m, produit1[i in 1:I, j in 1:J, k in 1:N, a in 1:4,], Prod[i, j, k, a] <= z[i, j, k])
 
 
-    # # @constraint(m, produit2border4[j in 2:(J-1), k in 1:N], Prod[I, j, k] <= 3 * z[I, J, k] - z[I, j-1, k] - z[I, j+1, k] - z[I-1, j, k] + 1)
-    # # @constraint(m, produit3border4[j in 2:(J-1), k in 1:N], Prod[I, j, k] >= 4 * z[I, J, k] - z[I, j-1, k] - z[I, j+1, k] - z[I-1, j, k])
+    #dans les coins
+    @constraint(m, produit2_1corner1[k in 1:N; Pa[1, 1] != -1], Prod[1, 1, k, 1] <= z[2, 1, k])
+    @constraint(m, produit3_1corner1[k in 1:N; Pa[1, 1] != -1], Prod[1, 1, k, 1] >= z[2, 1, k] + z[1, 1, k] - 1)
 
-    # @constraint(m, produit2_1border4[j in 2:(J-1), k in 1:N], Prod[I, j, k, 2] <= z[I-1, j, k])
-    # @constraint(m, produit3_1border4[j in 2:(J-1), k in 1:N], Prod[I, j, k, 2] >= z[I, j, k] + z[I-1, j, k] - 1)
+    @constraint(m, produit2_2corner1[k in 1:N; Pa[1, 1] != -1], Prod[1, 1, k, 2] <= z[1, 2, k])
+    @constraint(m, produit3_2corner1[k in 1:N; Pa[1, 1] != -1], Prod[1, 1, k, 2] >= z[1, 2, k] + z[1, 1, k] - 1)
 
-    # @constraint(m, produit2_2border4[j in 2:(J-1), k in 1:N], Prod[I, j, k, 2] <= z[I, j-1, k])
-    # @constraint(m, produit3_2border4[j in 2:(J-1), k in 1:N], Prod[I, j, k, 2] >= z[I, j, k] + z[I, j-1, k] - 1)
+    if Pa[1, 1] != -1
+        @constraint(m, paliss_corner1, Pa[1, 1] == 2 + sum(2 * z[1, 1, k] - sum(Prod[1, 1, k, a] for a in 1:2) for k in 1:N))
+    end
 
-    # @constraint(m, produit2_3border4[j in 2:(J-1), k in 1:N], Prod[I, j, k, 3] <= z[I, j+1, k])
-    # @constraint(m, produit3_3border4[j in 2:(J-1), k in 1:N], Prod[I, j, k, 3] >= z[I, j, k] + z[I, j+1, k] - 1)
+    @constraint(m, produit2_1corner2[k in 1:N; Pa[I, 1] != -1], Prod[I, 1, k, 1] <= z[I-1, 1, k])
+    @constraint(m, produit3_1corner2[k in 1:N; Pa[I, 1] != -1], Prod[I, 1, k, 1] >= z[I, 1, k] + z[I-1, 1, k] - 1)
 
-    # @constraint(m, paliss_border4[j in 2:(J-1); Pa[I, j] != -1], Pa[I, j] == 1 + sum(3 * z[I, j, k] - sum(Prod[I, j, k, a] for a in 1:3) for k in 1:N))
+    @constraint(m, produit2_2corner2[k in 1:N; Pa[I, 1] != -1], Prod[I, 1, k, 2] <= z[I, 2, k])
+    @constraint(m, produit3_2corner2[k in 1:N; Pa[I, 1] != -1], Prod[I, 1, k, 2] >= z[I, 1, k] + z[I, 2, k] - 1)
+
+    if Pa[I, 1] != -1
+        @constraint(m, paliss_corner2, Pa[I, 1] == 2 + sum(2 * z[I, 1, k] - sum(Prod[I, 1, k, a] for a in 1:2) for k in 1:N))
+    end
+
+    @constraint(m, produit2_1corner3[k in 1:N; Pa[1, J] != -1], Prod[1, J, k, 1] <= z[2, J, k])
+    @constraint(m, produit3_1corner3[k in 1:N; Pa[1, J] != -1], Prod[1, J, k, 1] >= z[1, J, k] + z[2, J, k] - 1)
+
+    @constraint(m, produit2_2corner3[k in 1:N; Pa[1, J] != -1], Prod[1, J, k, 2] <= z[1, J-1, k])
+    @constraint(m, produit3_2corner3[k in 1:N; Pa[1, J] != -1], Prod[1, J, k, 2] >= z[1, J, k] + z[1, J-1, k] - 1)
+
+    if Pa[1, J] != -1
+        @constraint(m, paliss_corner3, Pa[1, J] == 2 + sum(2 * z[1, J, k] - sum(Prod[1, J, k, a] for a in 1:2) for k in 1:N))
+    end
+
+    @constraint(m, produit2_1corner4[k in 1:N; Pa[I, J] != -1], Prod[I, J, k, 1] <= z[I-1, J, k])
+    @constraint(m, produit3_1corner4[k in 1:N; Pa[I, J] != -1], Prod[I, J, k, 1] >= z[I, J, k] + z[I-1, J, k] - 1)
+
+    @constraint(m, produit2_2corner4[k in 1:N; Pa[I, J] != -1], Prod[I, J, k, 2] <= z[I, J-1, k])
+    @constraint(m, produit3_2corner4[k in 1:N; Pa[I, J] != -1], Prod[I, J, k, 2] >= z[I, J, k] + z[I, J-1, k] - 1)
+
+    if Pa[I, J] != -1
+        @constraint(m, paliss_corner4, Pa[I, J] == 2 + sum(2 * z[I, J, k] - sum(Prod[I, J, k, a] for a in 1:2) for k in 1:N))
+    end
+
+
+    #bordures 
+    @constraint(m, produit2_1border1[i in 2:(I-1), k in 1:N; Pa[i, 1] != -1], Prod[i, 1, k, 1] <= z[i+1, 1, k])
+    @constraint(m, produit3_1border1[i in 2:(I-1), k in 1:N; Pa[i, 1] != -1], Prod[i, 1, k, 1] >= z[i, 1, k] + z[i+1, 1, k] - 1)
+
+    @constraint(m, produit2_2border1[i in 2:(I-1), k in 1:N; Pa[i, 1] != -1], Prod[i, 1, k, 2] <= z[i-1, 1, k])
+    @constraint(m, produit3_2border1[i in 2:(I-1), k in 1:N; Pa[i, 1] != -1], Prod[i, 1, k, 2] >= z[i, 1, k] + z[i-1, 1, k] - 1)
+
+    @constraint(m, produit2_3border1[i in 2:(I-1), k in 1:N; Pa[i, 1] != -1], Prod[i, 1, k, 3] <= z[i, 2, k])
+    @constraint(m, produit3_3border1[i in 2:(I-1), k in 1:N; Pa[i, 1] != -1], Prod[i, 1, k, 3] >= z[i, 1, k] + z[i, 2, k] - 1)
+
+    @constraint(m, paliss_border1[i in 2:(I-1); Pa[i, 1] != -1], Pa[i, 1] == 1 + sum(3 * z[i, 1, k] - sum(Prod[i, 1, k, a] for a in 1:3) for k in 1:N))
+
+
+    @constraint(m, produit2_1border2[j in 2:(J-1), k in 1:N; Pa[1, j] != -1], Prod[1, j, k, 1] <= z[2, j, k])
+    @constraint(m, produit3_1border2[j in 2:(J-1), k in 1:N; Pa[1, j] != -1], Prod[1, j, k, 1] >= z[1, j, k] + z[2, j, k] - 1)
+
+    @constraint(m, produit2_2border2[j in 2:(J-1), k in 1:N; Pa[1, j] != -1], Prod[1, j, k, 2] <= z[1, j-1, k])
+    @constraint(m, produit3_2border2[j in 2:(J-1), k in 1:N; Pa[1, j] != -1], Prod[1, j, k, 2] >= z[1, j, k] + z[1, j-1, k] - 1)
+
+    @constraint(m, produit2_3border2[j in 2:(J-1), k in 1:N; Pa[1, j] != -1], Prod[1, j, k, 3] <= z[1, j+1, k])
+    @constraint(m, produit3_3border2[j in 2:(J-1), k in 1:N; Pa[1, j] != -1], Prod[1, j, k, 3] >= z[1, j, k] + z[1, j+1, k] - 1)
+
+    @constraint(m, paliss_border2[j in 2:(J-1); Pa[1, j] != -1], Pa[1, j] == 1 + sum(3 * z[1, j, k] - sum(Prod[1, j, k, a] for a in 1:3) for k in 1:N))
 
 
 
-    # # @constraint(m, produit2mid[i in 2:(I-1), j in 2:(J-1), k in 1:N], Prod[i, j, k] <= 4 * z[i, j, k] - z[i+1, j, k] - z[i, j+1, k] - z[i-1, j, k] - z[i, j-1, k])
-    # # @constraint(m, produit3mid[i in 2:(I-1), j in 2:(J-1), k in 1:N], Prod[i, j, k] <= 5 * z[i, j, k] - z[i+1, j, k] - z[i, j+1, k] - z[i-1, j, k] - z[i, j-1, k] - 1)
+    @constraint(m, produit2_1border3[i in 2:(I-1), k in 1:N; Pa[i, J] != -1], Prod[i, J, k, 1] <= z[i-1, J, k])
+    @constraint(m, produit3_1border3[i in 2:(I-1), k in 1:N; Pa[i, J] != -1], Prod[i, J, k, 1] >= z[i, J, k] + z[i-1, J, k] - 1)
 
-    # @constraint(m, produit2_1mid[i in 2:(I-1), j in 2:(J-1), k in 1:N], Prod[i, j, k, 1] <= z[i-1, j, k])
-    # @constraint(m, produit3_1mid[i in 2:(I-1), j in 2:(J-1), k in 1:N], Prod[i, j, k, 1] >= z[i, j, k] + z[i-1, j, k] - 1)
+    @constraint(m, produit2_2border3[i in 2:(I-1), k in 1:N; Pa[i, J] != -1], Prod[i, J, k, 2] <= z[i+1, J, k])
+    @constraint(m, produit3_2border3[i in 2:(I-1), k in 1:N; Pa[i, J] != -1], Prod[i, J, k, 2] >= z[i, J, k] + z[i+1, J, k] - 1)
 
-    # @constraint(m, produit2_2mid[i in 2:(I-1), j in 2:(J-1), k in 1:N], Prod[i, j, k, 2] <= z[i+1, j, k])
-    # @constraint(m, produit3_2mid[i in 2:(I-1), j in 2:(J-1), k in 1:N], Prod[i, j, k, 2] >= z[i, j, k] + z[i+1, j, k] - 1)
+    @constraint(m, produit2_3border3[i in 2:(I-1), k in 1:N; Pa[i, J] != -1], Prod[i, J, k, 3] <= z[i, J-1, k])
+    @constraint(m, produit3_3border3[i in 2:(I-1), k in 1:N; Pa[i, J] != -1], Prod[i, J, k, 3] >= z[i, J, k] + z[i, J-1, k] - 1)
 
-    # @constraint(m, produit2_3mid[i in 2:(I-1), j in 2:(J-1), k in 1:N], Prod[i, j, k, 3] <= z[i, j-1, k])
-    # @constraint(m, produit3_3mid[i in 2:(I-1), j in 2:(J-1), k in 1:N], Prod[i, j, k, 3] >= z[i, j, k] + z[i, j-1, k] - 1)
+    @constraint(m, paliss_border3[i in 2:(I-1); Pa[i, J] != -1], Pa[i, J] == 1 + sum(3 * z[i, J, k] - sum(Prod[i, J, k, a] for a in 1:3) for k in 1:N))
 
-    # @constraint(m, produit2_4mid[i in 2:(I-1), j in 2:(J-1), k in 1:N], Prod[i, j, k, 4] <= z[i, j+1, k])
-    # @constraint(m, produit3_4mid[i in 2:(I-1), j in 2:(J-1), k in 1:N], Prod[i, j, k, 4] >= z[i, j, k] + z[i, j+1, k] - 1)
 
-    # @constraint(m, paliss_mid[i in 2:(I-1), j in 2:(J-1); Pa[i, j] != -1], Pa[i, j] == sum(4 * z[i, j, k] - sum(Prod[i, j, k, a] for a in 1:4) for k in 1:N))
+    @constraint(m, produit2_1border4[j in 2:(J-1), k in 1:N; Pa[I, j] != -1], Prod[I, j, k, 2] <= z[I-1, j, k])
+    @constraint(m, produit3_1border4[j in 2:(J-1), k in 1:N; Pa[I, j] != -1], Prod[I, j, k, 2] >= z[I, j, k] + z[I-1, j, k] - 1)
+
+    @constraint(m, produit2_2border4[j in 2:(J-1), k in 1:N; Pa[I, j] != -1], Prod[I, j, k, 2] <= z[I, j-1, k])
+    @constraint(m, produit3_2border4[j in 2:(J-1), k in 1:N; Pa[I, j] != -1], Prod[I, j, k, 2] >= z[I, j, k] + z[I, j-1, k] - 1)
+
+    @constraint(m, produit2_3border4[j in 2:(J-1), k in 1:N; Pa[I, j] != -1], Prod[I, j, k, 3] <= z[I, j+1, k])
+    @constraint(m, produit3_3border4[j in 2:(J-1), k in 1:N; Pa[I, j] != -1], Prod[I, j, k, 3] >= z[I, j, k] + z[I, j+1, k] - 1)
+
+    @constraint(m, paliss_border4[j in 2:(J-1); Pa[I, j] != -1], Pa[I, j] == 1 + sum(3 * z[I, j, k] - sum(Prod[I, j, k, a] for a in 1:3) for k in 1:N))
+
+
+    #milieu
+    @constraint(m, produit2_1mid[i in 2:(I-1), j in 2:(J-1), k in 1:N; Pa[i, j] != -1], Prod[i, j, k, 1] <= z[i-1, j, k])
+    @constraint(m, produit3_1mid[i in 2:(I-1), j in 2:(J-1), k in 1:N; Pa[i, j] != -1], Prod[i, j, k, 1] >= z[i, j, k] + z[i-1, j, k] - 1)
+
+    @constraint(m, produit2_2mid[i in 2:(I-1), j in 2:(J-1), k in 1:N; Pa[i, j] != -1], Prod[i, j, k, 2] <= z[i+1, j, k])
+    @constraint(m, produit3_2mid[i in 2:(I-1), j in 2:(J-1), k in 1:N; Pa[i, j] != -1], Prod[i, j, k, 2] >= z[i, j, k] + z[i+1, j, k] - 1)
+
+    @constraint(m, produit2_3mid[i in 2:(I-1), j in 2:(J-1), k in 1:N; Pa[i, j] != -1], Prod[i, j, k, 3] <= z[i, j-1, k])
+    @constraint(m, produit3_3mid[i in 2:(I-1), j in 2:(J-1), k in 1:N; Pa[i, j] != -1], Prod[i, j, k, 3] >= z[i, j, k] + z[i, j-1, k] - 1)
+
+    @constraint(m, produit2_4mid[i in 2:(I-1), j in 2:(J-1), k in 1:N; Pa[i, j] != -1], Prod[i, j, k, 4] <= z[i, j+1, k])
+    @constraint(m, produit3_4mid[i in 2:(I-1), j in 2:(J-1), k in 1:N; Pa[i, j] != -1], Prod[i, j, k, 4] >= z[i, j, k] + z[i, j+1, k] - 1)
+
+    @constraint(m, paliss_mid[i in 2:(I-1), j in 2:(J-1); Pa[i, j] != -1], Pa[i, j] == sum(4 * z[i, j, k] - sum(Prod[i, j, k, a] for a in 1:4) for k in 1:N))
+
+
+
+
+
 
     ####contraintes connexité 
 
@@ -296,6 +284,7 @@ function solveDataSet()
     # For each instance
     # (for each file in folder dataFolder which ends by ".txt")
     for file in filter(x -> occursin(".txt", x), readdir(dataFolder))
+        
 
         println("-- Resolution of ", file)
 
